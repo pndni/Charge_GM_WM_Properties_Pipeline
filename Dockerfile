@@ -13,8 +13,8 @@ RUN touch /root/matlab/startup.m  # to keep the freesurfer initialization quiet
 
 ENV BASH_ENV="/initstub"
 
-COPY scripts ./
-COPY utils ./
-COPY models ./
+COPY scripts ./scripts
+COPY utils ./utils
+COPY models ./models
 
 ENTRYPOINT ["/bin/bash", "scripts/pipeline.sh"]
