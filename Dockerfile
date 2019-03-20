@@ -17,4 +17,4 @@ COPY scripts ./
 COPY utils ./
 COPY models ./
 
-ENTRYPOINT ["/bin/bash", "charge_pipeline.sh"]
+ENTRYPOINT ["/bin/bash", "scripts/pipeline.sh"]
