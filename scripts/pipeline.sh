@@ -21,6 +21,7 @@ error_stats=5
 error_statsnout=6
 error_atlas=7
 error_dtiref=8
+error_filesnotfound=9
 
 error() {
   exitcode=${2:-$error_generic}
@@ -63,7 +64,17 @@ startdir=$PWD
 mkdir $outdir
 pushd $outdir > /dev/null
 
+# Chargedir is the root directory of the pipeline files
+# If it's not set, assume it is startdir
+if [ -z "$CHARGEDIR" ]
+then
+    $CHARGEDIR=$startdir
+fi
 
+if [ ! -e $CHARGEDIR/utils ] || [ ! -e $CHARGEDIR/models ]
+then
+    exit "utils or models not found. Try setting CHARGEDIR to the root directory of the pipeline repository" $error_filesnotfound
+fi
 
 # Check FSLOUTPUTTYPE and store appropriate extension in "ext"
 
@@ -99,8 +110,8 @@ esac
 
 cp $indir/$t1 ./
 
-atlas=$startdir/models/atlas_labels_ref.nii.gz
-icvmask=$startdir/models/icbm_mask_ref.nii.gz
+atlas=$CHARGEDIR/models/atlas_labels_ref.nii.gz
+icvmask=$CHARGEDIR/models/icbm_mask_ref.nii.gz
 
 #included with FSL
 mnirefbrain=${FSLDIR}/data/standard/MNI152_T1_2mm_brain.nii
@@ -291,7 +302,7 @@ statswrapper () {
     local out=
     if [ $3 == "--skew" ] || [ $3 == "--kurtosis" ] || [ $3 == "--median" ]
     then
-	out=( $(fslpython $startdir/utils/stats.py -K $1 $2 $3) ) || error "pystatserror" $error_stats
+	out=( $(fslpython $CHARGEDIR/utils/stats.py -K $1 $2 $3) ) || error "pystatserror" $error_stats
     else
 	out=( $(fslstats -K $1 $2 $3) ) || error "fslstatserror" $error_stats
     fi

@@ -10,11 +10,15 @@ RUN echo "source /etc/profile.d/freesurfer.sh" > /initstub
 RUN echo "source /etc/profile.d/fsl.sh" >> /initstub
 RUN mkdir /root/matlab
 RUN touch /root/matlab/startup.m  # to keep the freesurfer initialization quiet
+RUN rm freesurfer-Linux-centos6_x86_64-stable-pub-v6.0.0.tar.gz
+RUN yum install -y bc
 
 ENV BASH_ENV="/initstub"
 
-COPY scripts ./scripts
-COPY utils ./utils
-COPY models ./models
+COPY scripts /opt/charge/scripts
+COPY utils /opt/charge/utils
+COPY models /opt/charge/models
 
-ENTRYPOINT ["/bin/bash", "scripts/pipeline.sh"]
+ENV CHARGEDIR=/opt/charge
+
+ENTRYPOINT ["/bin/bash", "$CHARGEDIR/scripts/pipeline.sh"]
