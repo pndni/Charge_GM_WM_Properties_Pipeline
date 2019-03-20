@@ -291,7 +291,7 @@ statswrapper () {
     local out=
     if [ $3 == "--skew" ] || [ $3 == "--kurtosis" ] || [ $3 == "--median" ]
     then
-	out=( $(fslpython $startdir/stats.py -K $1 $2 $3) ) || error "pystatserror" $error_stats
+	out=( $(fslpython $startdir/utils/stats.py -K $1 $2 $3) ) || error "pystatserror" $error_stats
     else
 	out=( $(fslstats -K $1 $2 $3) ) || error "fslstatserror" $error_stats
     fi
