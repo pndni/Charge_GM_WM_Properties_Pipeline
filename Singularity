@@ -1,0 +1,2 @@
+Bootstrap: docker
+From: pndni/charge_gm_wm_properties_pipeline
