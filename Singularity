@@ -12,8 +12,8 @@ Include: yum
     models /opt/charge/models
 
 %post
-    yum install -y wget file bc
-    wget https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/6.0.0/freesurfer-Linux-centos6_x86_64-stable-pub-v6.0.0.tar.gz
+    yum install -y wget file bc tar
+    wget --no-verbose https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/6.0.0/freesurfer-Linux-centos6_x86_64-stable-pub-v6.0.0.tar.gz
     tar -C /opt/ -xzvf freesurfer-Linux-centos6_x86_64-stable-pub-v6.0.0.tar.gz
     sed '1aexport FREESURFER_HOME=/opt/freesurfer' < /opt/freesurfer/SetUpFreeSurfer.sh > /etc/profile.d/freesurfer.sh
     wget https://fsl.fmrib.ox.ac.uk/fsldownloads/fslinstaller.py
