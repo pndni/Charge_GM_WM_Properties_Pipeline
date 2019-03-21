@@ -29,7 +29,7 @@ Include: yum
     rm -rf /opt/fsl/bin/FSLeyes
     find /opt/fsl/data/standard/ -not -name 'MNI152_T1_2mm*' -exec rm -rf {} +
 
-%environmentment
+%environment
    BASH_ENV="/etc/chargeinitstub"
    CHARGEDIR=/opt/charge
 
