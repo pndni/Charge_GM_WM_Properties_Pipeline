@@ -1,7 +1,7 @@
 Bootstrap: yum
 OSVersion: 7
 MirrorURL: http://mirror.centos.org/centos-%{OSVERSION}/%{OSVERSION}/os/x86_64/
-From: pndni/charge_gm_wm_properties_pipeline
+Include: yum
 
 %post
     yum install -y wget file bc
