@@ -14,7 +14,7 @@ RUN rm freesurfer-Linux-centos6_x86_64-stable-pub-v6.0.0.tar.gz
 RUN yum install -y bc
 RUN rm -rf /opt/freesurfer/average
 RUN rm -rf /opt/freesurfer/subjects
-RUN rm -f /opt/fsl/bin/FSLeyes
+RUN rm -rf /opt/fsl/bin/FSLeyes
 RUN find /opt/fsl/data/standard/ -not -name 'MNI152_T1_2mm*' -exec rm -rf {} +
 
 ENV BASH_ENV="/initstub"
