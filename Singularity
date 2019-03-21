@@ -3,6 +3,14 @@ OSVersion: 7
 MirrorURL: http://mirror.centos.org/centos-%{OSVERSION}/%{OSVERSION}/os/x86_64/
 Include: yum
 
+%setup
+    mkdir -p $SINGULARITY_ROOTFS/opt/charge
+
+%files
+    scripts /opt/charge/scripts
+    utils /opt/charge/utils
+    models /opt/charge/models
+
 %post
     yum install -y wget file bc
     wget https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/6.0.0/freesurfer-Linux-centos6_x86_64-stable-pub-v6.0.0.tar.gz
@@ -24,11 +32,6 @@ Include: yum
 %environmentment
    BASH_ENV="/etc/chargeinitstub"
    CHARGEDIR=/opt/charge
-
-%files
-    scripts /opt/charge/scripts
-    utils /opt/charge/utils
-    models /opt/charge/models
 
 %runscript
     /bin/bash /opt/charge/scripts/pipeline.sh "$@"
