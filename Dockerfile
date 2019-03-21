@@ -21,4 +21,4 @@ COPY models /opt/charge/models
 
 ENV CHARGEDIR=/opt/charge
 
-ENTRYPOINT ["/bin/bash", "$CHARGEDIR/scripts/pipeline.sh"]
+ENTRYPOINT ["/bin/bash", "/opt/charge/scripts/pipeline.sh"]
