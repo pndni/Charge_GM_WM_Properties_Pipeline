@@ -18,8 +18,8 @@ Include: yum
     sed '1aexport FREESURFER_HOME=/opt/freesurfer' < /opt/freesurfer/SetUpFreeSurfer.sh > /etc/profile.d/freesurfer.sh
     wget https://fsl.fmrib.ox.ac.uk/fsldownloads/fslinstaller.py
     python fslinstaller.py -V 6.0.1 -d /opt/fsl -E
-    echo "source /etc/profile.d/freesurfer.sh" > /etc/chargeinitstub
-    echo "source /etc/profile.d/fsl.sh" >> /etc/chargeinitstub
+    cat /etc/profile.d/freesurfer.sh >> $SINGULARITY_ENVIRONMENT
+    cat /etc/profile.d/fsl.sh >> $SINGULARITY_ENVIRONMENT
     mkdir /root/matlab
     touch /root/matlab/startup.m  # to keep the freesurfer initialization quiet
     rm freesurfer-Linux-centos6_x86_64-stable-pub-v6.0.0.tar.gz
@@ -30,8 +30,6 @@ Include: yum
     find /opt/fsl/data/standard/ -not -name 'MNI152_T1_2mm*' -exec rm -rf {} +
 
 %environment
-   BASH_ENV="/etc/chargeinitstub"
-   export BASH_ENV
    CHARGEDIR=/opt/charge
    export CHARGEDIR
 
