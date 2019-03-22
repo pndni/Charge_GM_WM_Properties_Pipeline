@@ -128,6 +128,7 @@ t1betimage=$t1betdir/bet$ext
 t1fastdir=$outdir/t1_fast_out
 t1fastout=$t1fastdir/t1
 t1betcor=${t1fastout}_restore$ext
+t1betcorc=${t1fastout}_restore_cropped$ext
 gmmask=${t1fastout}_seg_$gm$ext
 wmmask=${t1fastout}_seg_$wm$ext
 gmpve=${t1fastout}_pve_$gm$ext
@@ -145,6 +146,7 @@ icvmask_native=$t1regdir/icbm_mask_native$ext
 
 nuoutdir=$outdir/t1_nucor_out
 nucor=$nuoutdir/nu$ext
+nucorc=$nuoutdir/nu_cropped$ext
 
 statsdir=$outdir/stats_out
 statsfile=$statsdir/stats.txt
@@ -170,6 +172,7 @@ simple_atlas2=$statsdir/atlas_simple_pv$ext
 
 t1bet_f=0.4  # parameter passed to FSL's  bet
 t1tissuefrac=0.9  # the fraction a voxel must be of a given tissue type to be included in that tissue's mask (for the pv masks)
+croppad=5  # amount to pad image when cropping
 
 # BET
 #    Extract the brain from the image
@@ -189,6 +192,17 @@ mkdir $t1fastdir
 echo "Running: fast --verbose --out=$t1fastout -b -B --segments $t1betimage"
 fast --verbose --out=$t1fastout -B --segments $t1betimage
 
+# Crop image
+lims=( $(fslstats $t1betcor -w) )
+sizepad=$((croppad * 2))
+xmin=$((lims[0] - croppad))
+xsize=$((lims[1] + sizepad))
+ymin=$((lims[2] - croppad))
+ysize=$((lims[3] + sizepad))
+zmin=$((lims[4] - croppad))
+zsize=$((lims[5] + sizepad))
+fslroi $t1betcor $t1betcorc $xmin $xsize $ymin $ysize $zmin $zsize
+
 # Registration
 #    Reference is MNI152 2mm standard
   
@@ -199,8 +213,8 @@ mkdir $t1regdir
 #     register to ``brain only'' reference using the bet/bias corrected image (12 DOF)
 
 
-echo "flirt -ref $mnirefbrain -in $t1betcor -omat $s2raff"
-flirt -ref $mnirefbrain -in $t1betcor -omat $s2raff
+echo "flirt -ref $mnirefbrain -in $t1betcorc -omat $s2raff"
+flirt -ref $mnirefbrain -in $t1betcorc -omat $s2raff
 
 # nonlinear registration
 #     of original image to reference image
@@ -214,23 +228,22 @@ fnirt --in=$t1 --config=$fnirtconf --aff=$s2raff --cout=$s2rwarp
 # Transform the bet image to the standard for QC
 
 
-echo "applywarp --ref=$mniref --in=$t1betcor --out=$t1betcorref --warp=$s2rwarp"
-applywarp --ref=$mniref --in=$t1betcor --out=$t1betcorref --warp=$s2rwarp
+echo "applywarp --ref=$mniref --in=$t1betcorc --out=$t1betcorref --warp=$s2rwarp"
+applywarp --ref=$mniref --in=$t1betcorc --out=$t1betcorref --warp=$s2rwarp
 
 # Calculate inverse transformation
 
-echo "invwarp --ref=$t1 --warp=$s2rwarp --out=$r2swarp"
-invwarp --ref=$t1 --warp=$s2rwarp --out=$r2swarp
+echo "invwarp --ref=$t1betcorc --warp=$s2rwarp --out=$r2swarp"
+invwarp --ref=$t1betcorc --warp=$s2rwarp --out=$r2swarp
 
 # apply inverse transformation to labels and headmask
 #    use nearest neighbor interpolation
 
 
-echo "applywarp --ref=$t1 --in=$atlas --out=$atlas_native --warp=$r2swarp --interp=nn --datatype=int"
-applywarp --ref=$t1 --in=$atlas --out=$atlas_native --warp=$r2swarp --interp=nn --datatype=int
-echo "applywarp --ref=$t1 --in=$icvmask --out=$icvmask_native --warp=$r2swarp --interp=nn --datatype=int"
-applywarp --ref=$t1 --in=$icvmask --out=$icvmask_native --warp=$r2swarp --interp=nn --datatype=int
-#applywarp --ref=$t1 --in=$wmprobmap --out=$wmprobmap_native --warp=$r2swarp --interp=nn
+echo "applywarp --ref=$t1betcorc --in=$atlas --out=$atlas_native --warp=$r2swarp --interp=nn --datatype=int"
+applywarp --ref=$t1betcorc --in=$atlas --out=$atlas_native --warp=$r2swarp --interp=nn --datatype=int
+echo "applywarp --ref=$t1betcorc --in=$icvmask --out=$icvmask_native --warp=$r2swarp --interp=nn --datatype=int"
+applywarp --ref=$t1betcorc --in=$icvmask --out=$icvmask_native --warp=$r2swarp --interp=nn --datatype=int
 
 
 
@@ -252,6 +265,8 @@ fi
 mkdir $nuoutdir
 echo "mri_nu_correct.mni --i $t1 --o $nucor"
 mri_nu_correct.mni --i $t1 --o $nucor
+echo fslroi $nucor $nucorc $xmin $xsize $ymin $ysize $zmin $zsize
+fslroi $nucor $nucorc $xmin $xsize $ymin $ysize $zmin $zsize
 
 # Calculate intensity values
 
@@ -383,9 +398,9 @@ echo "# $(date)"                                                          >> $st
 echotsv "${label_names[*]}"                                               >> $statsfile
 echo -e "\tIC"                                                            >> $statsfile
 
-printstats "fullatlas" $combined_atlas "cor" $nucor 28 >> $statsfile
+printstats "fullatlas" $combined_atlas "cor" $nucorc 28 >> $statsfile
 printstats "fullatlas" $combined_atlas "nocor" $t1 28 >> $statsfile
-printstats "pvatlas" $combined_atlas2 "cor" $nucor 28 >> $statsfile
+printstats "pvatlas" $combined_atlas2 "cor" $nucorc 28 >> $statsfile
 printstats "pvatlas" $combined_atlas2 "nocor" $t1 28 >> $statsfile
 
 echo "# Data calculated using $(basename $0) with sha256 has ${selfhash}" > $statsfile_simple
@@ -399,9 +414,9 @@ echo "# $(date)"                                                          >> $st
 echotsv "${label_names_simple[*]}"                                        >> $statsfile_simple
 echo -e "\tIC"                                                            >> $statsfile_simple
 
-printstats "fullatlas" $simple_atlas "cor" $nucor 2 >> $statsfile_simple
+printstats "fullatlas" $simple_atlas "cor" $nucorc 2 >> $statsfile_simple
 printstats "fullatlas" $simple_atlas "nocor" $t1 2 >> $statsfile_simple
-printstats "pvatlas" $simple_atlas2 "cor" $nucor 2 >> $statsfile_simple
+printstats "pvatlas" $simple_atlas2 "cor" $nucorc 2 >> $statsfile_simple
 printstats "pvatlas" $simple_atlas2 "nocor" $t1 2 >> $statsfile_simple
 
 # DTI
@@ -496,12 +511,12 @@ mkdir $dtiregdir
 
 echo "fslroi $dtibetimage $structforreg $refinds 1"
 fslroi $dtibetimage $structforreg $refinds 1
-echo "flirt -ref $t1betcor -in $structforreg -omat $dti2t1"
-flirt -ref $t1betcor -in $structforreg -omat $dti2t1 -out $struct_native
-echo "flirt -ref $t1betcor -init $dti2t1 -applyxfm -in $dtifa -out $dtifa_native"
-flirt -ref $t1betcor -init $dti2t1 -applyxfm -in $dtifa -out $dtifa_native
-echo "flirt -ref $t1betcor -init $dti2t1 -applyxfm -in $dtimd -out $dtimd_native"
-flirt -ref $t1betcor -init $dti2t1 -applyxfm -in $dtimd -out $dtimd_native
+echo "flirt -ref $t1betcorc -in $structforreg -omat $dti2t1"
+flirt -ref $t1betcorc -in $structforreg -omat $dti2t1 -out $struct_native
+echo "flirt -ref $t1betcorc -init $dti2t1 -applyxfm -in $dtifa -out $dtifa_native"
+flirt -ref $t1betcorc -init $dti2t1 -applyxfm -in $dtifa -out $dtifa_native
+echo "flirt -ref $t1betcorc -init $dti2t1 -applyxfm -in $dtimd -out $dtimd_native"
+flirt -ref $t1betcorc -init $dti2t1 -applyxfm -in $dtimd -out $dtimd_native
 
 # Data extraction
 
