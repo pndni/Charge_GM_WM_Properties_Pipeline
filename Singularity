@@ -31,7 +31,9 @@ Include: yum
 
 %environment
    BASH_ENV="/etc/chargeinitstub"
+   export BASH_ENV
    CHARGEDIR=/opt/charge
+   export CHARGEDIR
 
 %runscript
     /bin/bash /opt/charge/scripts/pipeline.sh "$@"
