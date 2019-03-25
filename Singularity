@@ -27,7 +27,7 @@ Include: yum
     rm -rf /opt/freesurfer/average
     rm -rf /opt/freesurfer/subjects
     rm -rf /opt/fsl/bin/FSLeyes
-    find /opt/fsl/data/standard/ -not -name 'MNI152_T1_2mm*' -exec rm -rf {} +
+    find /opt/fsl/data/standard/ -not -name 'MNI152_T1_2mm*' -type f -exec rm -rf {} +
 
 %environment
    CHARGEDIR=/opt/charge
