@@ -39,20 +39,33 @@ selfhash=$(sha256sum $0)
 
 # Either accept 3 arguments (T1 only) or 6 (T1 and DTI)
 
-if [ $# != 3 ] && [ $# != 6 ]
+if [ $# != 3 ] && [ $# != 6 ] && [ $# != 4 ] && [ $# != 7 ]
 then
-    error "number or arguments must be 3 or 6" $error_nargs
+    error "number or arguments must be 3, 4, 6 or 7" $error_nargs
 fi
 indir=$1
 t1=$2
 outdir=$3
 rundti=
-if [ $# == 6 ];
+if [ $# == 6 ] || [ $# == 7 ];
 then
     rundti=1
     dti=$4
     bvec=$5
     bval=$6
+    if [ $# == 7 ]
+    then
+	qc=$7
+    else
+	qc=0
+    fi
+else
+    if [ $# == 4 ]
+    then
+	qc=$4
+    else
+	qc=0
+    fi
 fi
 
 if [ -d "$outdir" ]
@@ -129,10 +142,15 @@ t1fastdir=$outdir/t1_fast_out
 t1fastout=$t1fastdir/t1
 t1betcor=${t1fastout}_restore$ext
 t1betcorc=${t1fastout}_restore_cropped$ext
+t1seg=${t1fastout}_seg$ext
 gmmask=${t1fastout}_seg_$gm$ext
 wmmask=${t1fastout}_seg_$wm$ext
 gmpve=${t1fastout}_pve_$gm$ext
 wmpve=${t1fastout}_pve_$wm$ext
+gmmaskc=${t1fastout}_seg_${gm}_cropped$ext
+wmmaskc=${t1fastout}_seg_${wm}_cropped$ext
+gmpvec=${t1fastout}_pve_${gm}_cropped$ext
+wmpvec=${t1fastout}_pve_${wm}_cropped$ext
 gmmask2=${t1fastout}_seg_${gm}_pv$ext
 wmmask2=${t1fastout}_seg_${wm}_pv$ext
 
@@ -164,6 +182,17 @@ atlas_lobe_gm2=$statsdir/atlas_lobe_gm_pv$ext
 atlas_lobe_wm2=$statsdir/atlas_lobe_wm_pv$ext
 simple_atlas=$statsdir/atlas_simple$ext
 simple_atlas2=$statsdir/atlas_simple_pv$ext
+
+qcoutdir=$outdir/QC
+if [ $qc == 1 ]
+then
+    mkdir $qcoutdir
+    cp $CHARGEDIR/QC/boilerplate.html $qcoutdir/index.html
+fi
+
+qcappend(){
+    sed -i "/<\/body>/i<div w3-include-html=\"${1}>\"</div>" $qcoutdir/index.html
+}
 #nucor_wmweighted=$statsdir/nu_wmweighted$ext
 #t1_wmweighted=$statsdir/t1_wmweighted$ext
 
@@ -182,6 +211,10 @@ croppad=5  # amount to pad image when cropping
 mkdir $t1betdir
 echo "Running: bet $t1 $t1betimage -f $t1bet_f -R"
 bet $t1 $t1betimage -f $t1bet_f -R
+if [ $qc == 1 ]
+then
+    qcappend $(fslpython $CHARGEDIR/QC/makefade.py QC_1_T1 QC_1_BET $t1 $t1betimage $qcoutdir)
+fi
 
 # Segmentation
 #    Segment into white and grey matter. Simultaneously perform bias
@@ -191,6 +224,10 @@ bet $t1 $t1betimage -f $t1bet_f -R
 mkdir $t1fastdir
 echo "Running: fast --verbose --out=$t1fastout -b -B --segments $t1betimage"
 fast --verbose --out=$t1fastout -B --segments $t1betimage
+if [ $qc == 1 ]
+then
+    qcappend $(fslpython $CHARGEDIR/QC/makestatic.py QC_2_classification $t1betcor --label $t1seg)
+fi
 
 # Crop image
 lims=( $(fslstats $t1betcor -w) )
@@ -202,9 +239,18 @@ ysize=$((lims[3] + sizepad))
 zmin=$((lims[4] - croppad))
 zsize=$((lims[5] + sizepad))
 fslroi $t1betcor $t1betcorc $xmin $xsize $ymin $ysize $zmin $zsize
+fslroi $gmmask $gmmaskc $xmin $xsize $ymin $ysize $zmin $zsize
+fslroi $wmmask $wmmaskc $xmin $xsize $ymin $ysize $zmin $zsize
+fslroi $gmpve $gmpvec $xmin $xsize $ymin $ysize $zmin $zsize
+fslroi $wmpve $wmpvec $xmin $xsize $ymin $ysize $zmin $zsize
+if [ $qc == 1 ]
+then
+    qcappend $(fslpython $CHARGEDIR/QC/makestatic.py QC_3_betcrop $t1betcorc)
+fi
 
 # Registration
 #    Reference is MNI152 2mm standard
+
   
 
 mkdir $t1regdir
@@ -277,16 +323,16 @@ mkdir $statsdir
 
 # Construct combined atlas by offsetting wm values by 14
 
-fslmaths $atlas_native -mas $gmmask $gm_atlas
-fslmaths $atlas_native -add 14 -mas $wmmask -mas $atlas_native $wm_atlas
+fslmaths $atlas_native -mas $gmmaskc $gm_atlas
+fslmaths $atlas_native -add 14 -mas $wmmaskc -mas $atlas_native $wm_atlas
 fslmaths $gm_atlas -add $wm_atlas $combined_atlas
 
 
 
 # Constract atlas using more conservative tissue masks. Specifically only voxels with $T1TISSUEFRAC of the tissue
 
-fslmaths $gmpve -thr $t1tissuefrac -bin $gmmask2
-fslmaths $wmpve -thr $t1tissuefrac -bin $wmmask2
+fslmaths $gmpvec -thr $t1tissuefrac -bin $gmmask2
+fslmaths $wmpvec -thr $t1tissuefrac -bin $wmmask2
 fslmaths $atlas_native -mas $gmmask2 $gm_atlas2
 fslmaths $atlas_native -add 14 -mas $wmmask2 -mas $atlas_native $wm_atlas2
 fslmaths $gm_atlas2 -add $wm_atlas2 $combined_atlas2

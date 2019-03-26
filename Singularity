@@ -10,6 +10,7 @@ Include: yum
     scripts /opt/charge/scripts
     utils /opt/charge/utils
     models /opt/charge/models
+    QC /opt/charge/QC
 
 %post
     yum install -y wget file bc tar gzip libquadmath
