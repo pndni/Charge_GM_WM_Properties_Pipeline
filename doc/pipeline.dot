@@ -1,0 +1,67 @@
+strict digraph Pipeline {
+subgraph Inputs {
+node [shape=diamond, color=red, fontcolor=red]
+"T1 image"
+"MNI reference"
+"MNI reference brain"
+"Lobe map (reference space)"
+"Head mask (reference space)"
+"DTI image"
+"bvec"
+"bval"
+}
+subgraph Outputs {
+node[shape=rect, color=blue, fontcolor=blue];
+"T1 brain image" 
+"T1 cropped brain image" 
+"GM/WM maps"
+"T1 bet-nonuniformity-corrected image"
+"Crop parameters"
+"Reference to T1 linear transformation"
+"Reference to T1 non-linear transformation"
+"Lobe map (native space)"
+"Head mask (native space)"
+"NU corrected T1"
+"Cropped NU corrected T1"
+"Eddy corrected image"
+"DTI brain mask"
+"FA image"
+"MD image"
+"FA image (T1 space)"
+"MD image (T1 space)"
+"DTI to T1 linear transformation"
+"Stats files"
+"Structural index"
+"DTI brain image"
+"DTI structural image"
+}
+subgraph clustermaps{
+"T1 image" -> "Brain extraction (BET)" -> "T1 brain image" -> "Crop" -> "T1 cropped brain image" -> "Tissue classification (FAST)"
+"T1 brain image" -> "Crop parameters" -> "T1 Crop"
+"Tissue classification (FAST)" -> {"GM/WM maps", "T1 bet-nonuniformity-corrected image"}
+{"T1 bet-nonuniformity-corrected image", "MNI reference brain"} -> "Linear registration (FLIRT)" -> "Reference to T1 linear transformation"
+{"Reference T1 linear transformation", "T1 image", "MNI reference"} -> "Reference to T1 non-linear registration (FNIRT)" -> "Reference to T1 non-linear transformation"
+{"Lobe map (reference space)", "Reference to T1 non-linear transformation"} -> "Transform lobe map (applywarp)" -> "Lobe map (native space)"
+{"Head mask (reference space)", "Reference to T1 non-linear transformation"} -> "Transform head mask (applywarp)" -> "Head mask (native space)"
+{"Lobe map (native space)", "GM/WM maps"} -> "Lobe + tissue map"
+}
+
+subgraph "clusterT1 data" {
+"T1 image" -> "Non-uniformity correction (mri_nu_correct.mni)" -> "NU corrected T1"
+{"NU corrected T1", "Crop parameters"} -> "Crop NU" -> "Cropped NU corrected T1"
+}
+
+subgraph "clusterDTI" {
+bval -> "Structural index"
+{"DTI image", "Structural index"} -> "Eddy correction (eddy_correct)" -> "Eddy corrected image"
+"Eddy corrected image" -> "DTI brain extraction (BET)" -> {"DTI brain mask", "DTI brain image"}
+{"Eddy corrected image", "bvec", "bval", "DTI brain mask"} -> dtifit -> {"FA image", "MD image"}
+{"DTI brain image", "Structural index"} -> "Extract struct image (fslroi)" -> "DTI structural image"
+{"DTI structural image", "T1 brain image"} -> "DTI linear registration" -> "DTI to T1 linear transformation"
+{"DTI to T1 linear transformation", "FA image"} -> "Transform FA (applywarp)" -> "FA image (T1 space)"
+{"DTI to T1 linear transformation", "MD image"} -> "Transform MD (applywarp)" -> "MD image (T1 space)"
+}
+
+{"Cropped NU corrected T1", "Lobe + tissue map", "Head mask (native space)", "FA image (T1 space)", "MD image (T1 space)"} -> "Calc stats" -> "Stats files"
+
+}
