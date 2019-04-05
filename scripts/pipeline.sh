@@ -407,7 +407,7 @@ echo "# $(date)"                                                          >> "$s
 echotsv "${label_names[*]}"                                               >> "$statsfile" || error "echotsv"
 echo -e "\tBrain"                                                            >> "$statsfile"
 
-printstats "$combined_atlas" "cor" "$nucorc" 28 >> "$statsfile" || error "printstats"
+printstats "$combined_atlas" "T1" "$nucorc" 28 >> "$statsfile" || error "printstats"
 # printstats $combined_atlas "nocor" $t1c 28 >> $statsfile || error "printstats"
 # printstats "pvatlas" $combined_atlas2 "cor" $nucorc 28 >> $statsfile || error "printstats"
 # printstats "pvatlas" $combined_atlas2 "nocor" $t1c 28 >> $statsfile || error "printstats"
@@ -423,7 +423,7 @@ echo "# $(date)"                                                          >> "$s
 echotsv "${label_names_simple[*]}"                                        >> "$statsfile_simple" || error "echotsv"
 echo -e "\tBrain"                                                            >> "$statsfile_simple"
 
-printstats "$simple_atlas" "cor" "$nucorc" 2 >> "$statsfile_simple" || error "printstats"
+printstats "$simple_atlas" "T1" "$nucorc" 2 >> "$statsfile_simple" || error "printstats"
 # printstats $simple_atlas "nocor" $t1c 2 >> $statsfile_simple || error "printstats"
 # printstats "pvatlas" $simple_atlas2 "cor" $nucorc 2 >> $statsfile_simple || error "printstats"
 # printstats "pvatlas" $simple_atlas2 "nocor" $t1c 2 >> $statsfile_simple || error "printstats"
