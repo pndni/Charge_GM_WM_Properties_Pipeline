@@ -1,5 +1,8 @@
 #!/bin/bash
 
+set -u
+set -e
+
 usage () {
     cat <<EOF
 Search directory for file with a given suffix.  If exactly one file

@@ -19,6 +19,9 @@
 # TODO: this line will likely be different based on your system
 module load gnu-parallel
 
+# TODO if not using singularity:
+# export CHARGEDIR= # set to repository location
+
 HOSTS=$(scontrol show hostnames $SLURM_NODELIST | tr '\n' ,)
 
 # with singularity

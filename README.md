@@ -208,7 +208,7 @@ The final outputs are `stats.txt` and `stats_simple.txt` for each
 subject. Each of these is in the `stats_out` subdirectory of each
 subject's output folder. `stats_simple.txt` contains statistics (e.g.,
 mean, standard deviation) for T1 intensity, FA, and MD images for grey
-matter, white matter, and the head mask. Grey matter and white matter
+matter, white matter, and the brain mask. Grey matter and white matter
 calculations are limited to the frontal, parietal, temporal, and
 occipital lobes. For example
 
@@ -221,7 +221,7 @@ occipital lobes. For example
 # bval: sub1_dti.bval
 # Onput directory: /mnt/outdir/sub1
 # Thu Apr  4 11:26:26 EDT 2019
-	gm	wm	IC
+	gm	wm	Brain
 cor_mean	132.543153	192.408432	147.460649
 cor_median	132.0	194.0	148.0
 cor_std	18.277784	14.349024	43.706443
@@ -309,14 +309,14 @@ using FSL tools and the T1 image in the following steps.
 1. Extract brain (BET) and crop image to reduce image size
 2. Classify tissues using FAST
 
-A lobe map and head mask are provided with the pipeline. These are in
+A lobe map and brain mask are provided with the pipeline. These are in
 MNI reference space, and need to be transformed to native (T1) space
 for each subject. This is done with:
 1. Linear registration (FLIRT) of non-uniformity corrected brain image (BET output) with MNI brain image
 2. Non-linear registration (FNIRT) of T1 image with MNI image
 3. Apply non-linear transformation to t1 brain image for QC
 4. Invert the non-linear transformation
-5. Apply inverse transformation to lobe map and head mask
+5. Apply inverse transformation to lobe map and brain mask
 
 The lobe map and tissue masks are then combined to create two atlases. The simple atlas contains two labels:
 
@@ -376,7 +376,7 @@ DTI data is processed using FSL in the following steps
 
 Finally, multiple statistics are calculated for each processed image
 in each of the regions defined by both atlases. Additionally, the same
-statistics are calculated using the head mask (primarily for
+statistics are calculated using the brain mask (primarily for
 normalizing the T1 intensity values).
 
 ## Flowchart

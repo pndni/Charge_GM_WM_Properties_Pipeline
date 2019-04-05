@@ -136,7 +136,7 @@ logcmd(){
 cp $indir/$t1 ./
 
 atlas=$CHARGEDIR/models/atlas_labels_ref.nii.gz
-icvmask=$CHARGEDIR/models/icbm_mask_ref.nii.gz
+brainmask=$CHARGEDIR/models/icbm_mask_ref.nii.gz
 
 #included with FSL
 mnirefbrain=${FSLDIR}/data/standard/MNI152_T1_2mm_brain.nii
@@ -185,7 +185,7 @@ s2rwarp=$t1regdir/struct2mni_warp$ext # warp transformation from the T1 image to
 r2swarp=$t1regdir/mni2struct_warp$ext # warp transformation from the MNI reference to the T1 image
 t1betcorref=$t1regdir/t1_bet_cor_ref$ext # betcor transformed to MNI coords
 atlas_native=$t1regdir/atlas_labels_native$ext
-icvmask_native=$t1regdir/icbm_mask_native$ext
+brainmask_native=$t1regdir/icbm_mask_native$ext
 
 nuoutdir=$outdir/t1_nucor_out
 nucor=$nuoutdir/nu$ext
@@ -290,13 +290,13 @@ qcrun fade "T1 in ref coords" "MNI reference" $t1betcorref $mniref $qcoutdir --l
 logcmd invwarplog invwarp --ref=$t1betcorc --warp=$s2rwarp --out=$r2swarp
 qcrun logs invwarp logs/invwarplog $qcoutdir
 
-# apply inverse transformation to labels and headmask
+# apply inverse transformation to labels and brainmask
 #    use nearest neighbor interpolation
 
 logcmd atlas_2_native_log applywarp --ref=$t1betcorc --in=$atlas --out=$atlas_native --warp=$r2swarp --interp=nn --datatype=int
 qcrun static "Lobe mask in native coords." $t1betcorc $qcoutdir --labelfile $atlas_native --logprefix logs/atlas_2_native_log
-logcmd headmask_2_native_log applywarp --ref=$t1betcorc --in=$icvmask --out=$icvmask_native --warp=$r2swarp --interp=nn --datatype=int
-qcrun static "Head mask in native coords." $t1betcorc $qcoutdir --labelfile $icvmask_native --logprefix logs/headmask_2_native_log
+logcmd brainmask_2_native_log applywarp --ref=$t1betcorc --in=$brainmask --out=$brainmask_native --warp=$r2swarp --interp=nn --datatype=int
+qcrun static "Brain mask in native coords." $t1betcorc $qcoutdir --labelfile $brainmask_native --logprefix logs/brainmask_2_native_log
 
 # Sanity check
 
@@ -310,8 +310,8 @@ then
    error "Error with atlas label file. Aborting"
 fi
 
-# ensure head mask is not clipped
-logcmd checkedgeslog fslpython $CHARGEDIR/utils/check_edges.py $icvmask_native
+# ensure brain mask is not clipped
+logcmd checkedgeslog fslpython $CHARGEDIR/utils/check_edges.py $brainmask_native
 
 # MINC intensity correction
 
@@ -398,47 +398,47 @@ printstats() {
     # mean
     echo -en "${imagename}_mean"
     echotsv "$(statswrapper $atlas $image -m $nlabels)" || error "echotsv"
-    echo -e "\t"$(statswrapper $icvmask_native $image -m 1)
+    echo -e "\t"$(statswrapper $brainmask_native $image -m 1)
 
     # median
     echo -en "${imagename}_median"
     echotsv "$(statswrapper $atlas $image --median $nlabels)" || error "echotsv"
-    echo -e "\t"$(statswrapper $icvmask_native $image --median 1)
+    echo -e "\t"$(statswrapper $brainmask_native $image --median 1)
 
     # std
     echo -en "${imagename}_std"
     echotsv "$(statswrapper $atlas $image -s $nlabels)" || error "echotsv"
-    echo -e "\t"$(statswrapper $icvmask_native $image -s 1)
+    echo -e "\t"$(statswrapper $brainmask_native $image -s 1)
 
     # range
     local rangetmp=$(statswrapper $atlas $image -R $((nlabels * 2))) || error "statswrapper"
-    local rangeicvtmp=( $(statswrapper $icvmask_native $image -R 2) ) || error "statswrapper"
+    local rangebraintmp=( $(statswrapper $brainmask_native $image -R 2) ) || error "statswrapper"
     echo -en "${imagename}_min"
     echotsv "$rangetmp" 0 2 || error "echotsv"
-    echo -e "\t"${rangeicvtmp[0]}
+    echo -e "\t"${rangebraintmp[0]}
     echo -en "${imagename}_max"
     echotsv "$rangetmp" 1 2 || error "echotsv"
-    echo -e "\t"${rangeicvtmp[1]}
+    echo -e "\t"${rangebraintmp[1]}
 
     # volume
     local voltmp=$(statswrapper $atlas $image -v $((nlabels * 2))) || error "statswrapper"
-    local volicvtmp=( $(statswrapper $icvmask_native $image -v 2) ) || error "statswrapper"
+    local volbraintmp=( $(statswrapper $brainmask_native $image -v 2) ) || error "statswrapper"
     echo -en "${imagename}_nvoxels"
     echotsv "$voltmp" 0 2 || error "echotsv"
-    echo -e "\t"${volicvtmp[0]}
+    echo -e "\t"${volbraintmp[0]}
     echo -en "${imagename}_volume"
     echotsv "$voltmp" 1 2 || error "echotsv"
-    echo -e "\t"${volicvtmp[1]}
+    echo -e "\t"${volbraintmp[1]}
 
     # skew
     echo -en "${imagename}_skew"
     echotsv "$(statswrapper $atlas $image --skew $nlabels)" || error "echotsv"
-    echo -e "\t"$(statswrapper $icvmask_native $image --skew 1)
+    echo -e "\t"$(statswrapper $brainmask_native $image --skew 1)
 
     # kurtosis
     echo -en "${imagename}_kurtosis"
     echotsv "$(statswrapper $atlas $image --kurtosis $nlabels)" || error "echotsv"
-    echo -e "\t"$(statswrapper $icvmask_native $image --kurtosis 1)
+    echo -e "\t"$(statswrapper $brainmask_native $image --kurtosis 1)
 }
 
 echo "# Data calculated using $(basename $0) with sha256 has ${selfhash}" > $statsfile
@@ -450,7 +450,7 @@ echo "# bval: $bval"                                                      >> $st
 echo "# Onput directory: $outdir"                                         >> $statsfile
 echo "# $(date)"                                                          >> $statsfile
 echotsv "${label_names[*]}"                                               >> $statsfile || error "echotsv"
-echo -e "\tIC"                                                            >> $statsfile
+echo -e "\tBrain"                                                            >> $statsfile
 
 printstats $combined_atlas "cor" $nucorc 28 >> $statsfile || error "printstats"
 # printstats $combined_atlas "nocor" $t1c 28 >> $statsfile || error "printstats"
@@ -466,7 +466,7 @@ echo "# bval: $bval"                                                      >> $st
 echo "# Onput directory: $outdir"                                         >> $statsfile_simple
 echo "# $(date)"                                                          >> $statsfile_simple
 echotsv "${label_names_simple[*]}"                                        >> $statsfile_simple || error "echotsv"
-echo -e "\tIC"                                                            >> $statsfile_simple
+echo -e "\tBrain"                                                            >> $statsfile_simple
 
 printstats $simple_atlas "cor" $nucorc 2 >> $statsfile_simple || error "printstats"
 # printstats $simple_atlas "nocor" $t1c 2 >> $statsfile_simple || error "printstats"
@@ -571,7 +571,7 @@ logcmd dtifatransformlog flirt -ref $t1betcorc -init $dti2t1 -applyxfm -in $dtif
 qcrun fade "T1" "FA in T1 coords" $nucorc $dtifa_native $qcoutdir --logprefix logs/dtifatransformlog
 logcmd dtimdtransformlog flirt -ref $t1betcorc -init $dti2t1 -applyxfm -in $dtimd -out $dtimd_native
 qcrun fade "T1" "MD in T1 coords" $nucorc $dtimd_native $qcoutdir --logprefix logs/dtimdtransformlog
-qcrun static "Head mask over FA" $dtifa_native $qcoutdir --labelfile $icvmask_native
+qcrun static "Brain mask over FA" $dtifa_native $qcoutdir --labelfile $brainmask_native
 qcrun static "Lobe mask over MD" $dtimd_native $qcoutdir --labelfile $atlas_native
 
 # Data extraction
