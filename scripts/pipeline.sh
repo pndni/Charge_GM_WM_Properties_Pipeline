@@ -26,7 +26,7 @@ do
 	   ;;
 	f) export FS_LICENSE="$OPTARG"
 	   ;;
-	?) 2>& echo "Usage: pipeline.sh [-q] [-f freesurfer_license] indir t1 outdir [dti bvec bval]"
+	?) >&2 echo "Usage: pipeline.sh [-q] [-f freesurfer_license] indir t1 outdir [dti bvec bval]"
 	   exit 2
 	   ;;
     esac
