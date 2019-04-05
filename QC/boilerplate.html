@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<!--http://css3.bradshawenterprises.com/cfimg/-->
+<html>
+  <head>
+    <style>
+      @keyframes fade {
+        0% {opacity: 0;}
+        25% {opacity: 1;}
+        50% {opacity: 1;}
+        75% {opacity: 0;}
+        100% {opacity: 0;}
+      }
+      .imagebase { margin: 0 auto; }
+      img.first { position: absolute; left: 0; }
+      img.second { position: absolute; left: 0;
+		   animation-name: fade;
+		   animation-duration: 4s;
+		   animation-iteration-count: infinite;
+		   animation-timing-function: linear; }
+      .output { max-height: 15em; overflow: auto }
+    </style>
+  </head>
+  <body>
+  </body>
+</html>

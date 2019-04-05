@@ -26,7 +26,7 @@ you're using a managed cluster, there's a good chance singularity is
 supported. Once installed, the container may be acquired with
 
 ```bash
-singularity pull --name=charge_container.simg shub://pndni/Charge_GM_WM_Properties_Pipeline.1.0.0
+singularity pull --name charge_container.simg shub://pndni/Charge_GM_WM_Properties_Pipeline.1.0.0
 ```
 
 ## Manually
@@ -153,13 +153,13 @@ set -u
 
 subject=$1
 
+indir=/project/charge/subjects/$subject
+outdir=/project/charge/Charge_GM_WM_Properties_Pipeline_out/$subject
+
 t1=${subject}_t1w.nii
 dti=${subject}_dti.nii
 bvec=${subject}_dti.bvec
 bval=${subject}_dti.bval
-
-indir=/project/charge/subjects/$subject
-outdir=/project/charge/Charge_GM_WM_Properties_Pipeline_out/$subject
 
 outdirbase=${outdir%/*}
 outdirlast=${outdir##*/}
@@ -170,6 +170,13 @@ outdirlast=${outdir##*/}
 --app charge \
 --containall \
 charge_container.sh -q -f /mnt/outdir/license.txt /mnt/indir $t1 /mnt/outdir/$outdirlast $dti $bvec $bval
+```
+
+If your file names are less predictable (e.g. ${subject}_${date}_t1w.nii),
+[findfile.sh](helper/findfile.sh) may be used to search for a file with
+a given suffix:
+```bash
+t1=$(./findfile.sh $indir t1w.nii)
 ```
 
 Next, I download [[parallel.sh](helper/parallel.sh)] and modify it for my system.

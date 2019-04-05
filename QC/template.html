@@ -1,0 +1,41 @@
+    <h2>{{ name1 }}{% if name2 %} and {{ name2 }}{% endif %}</h2>
+    {% if sagittal1 %}
+    <div class="imagebase" style="height:{{ height_sagittal }};width:{{ width_sagittal }}">
+	<img src="{{ sagittal1 }}" alt="{{ name1 }} sagittal" class="first" style="height:{{ height_sagittal }};width:{{ width_sagittal }}">
+	{% if name2 %}
+	<img src="{{ sagittal2 }}" alt="{{ name2 }} sagittal" class="second" style="height:{{ height_sagittal }};width:{{ width_sagittal }}">
+	{% endif %}
+    </div>
+    {% endif %}
+    {% if coronal1 %}
+    <div class="imagebase" style="height:{{ height_coronal }};width:{{ width_coronal }}">
+	<img src="{{ coronal1 }}" alt="{{ name1 }} coronal" class="first" style="height:{{ height_coronal }};width:{{ width_coronal }}">
+	{% if name2 %}
+	<img src="{{ coronal2 }}" alt="{{ name2 }} coronal" class="second" style="height:{{ height_coronal }};width:{{ width_coronal }}">
+	{% endif %}
+    </div>
+    {% endif %}
+    {% if axial1 %}
+    <div class="imagebase" style="height:{{ height_axial }};width:{{ width_axial }}">
+	<img src="{{ axial1 }}" alt="{{ name1 }} axial" class="first" style="height:{{ height_axial }};width:{{ width_axial }}">
+	{% if name2 %}
+	<img src="{{ axial2 }}" alt="{{ name2 }} axial" class="second" style="height:{{ height_axial }};width:{{ width_axial }}">
+	{% endif %}
+    </div>
+    {% endif %}
+    {% if stdout %}
+    <div id="stdout" class="output">
+      stdout (scrollable):
+      <pre>
+        {{ stdout }}
+      </pre>
+    </div>
+    {% endif %}
+    {% if stderr %}
+    <div id="stderr" class="output">
+      stderr (scrollable):
+      <pre>
+        {{ stderr }}
+      </pre>
+    </div>
+    {% endif %}
