@@ -38,7 +38,7 @@ First, install the prequisits if they aren't already installed:
 Download the appropriate release of this repository from the
 [releases page](https://github.com/pndni/Charge_GM_WM_Properties_Pipeline/releases)
 or by cloning the repository. Set the CHARGEDIR environment variable
-to the location of the repository.
+to the location of the repository (using a full path).
 ```bash
 export CHARGEDIR="Insert charge directory here"
 ```
@@ -258,6 +258,12 @@ mask separately (i.e. the complex atlas described below).
 
 If the `-q` flag is used, a QC page is generated for each subject.
 This is located at `QC/index.html`.
+
+QC pages should be used to verify that the pipeline ran successfully for each subject.
+Some things to look out for:
+
+1. Ensure that the skull is not cropped in the initial cropping steps
+2. Ensure that all the registration steps worked
 
 # Combining data from all the subjects
 

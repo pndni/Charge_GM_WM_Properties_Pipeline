@@ -139,8 +139,12 @@ gm=1
 wm=2
 
 t1betdir=t1_bet_out
-t1c="$t1betdir"/t1_cropped$ext
+t1cskull=t1_cropped_skull$ext
+t1c=t1_cropped$ext
+t1betimage="$t1betdir"/bet$ext
+t1betimagecskull="$t1betdir"/bet_cropped_skull$ext
 t1betimagec="$t1betdir"/bet_cropped$ext
+t1skull="$t1betdir"/bet_skull$ext
 
 t1fastdir=t1_fast_out
 t1fastout="$t1fastdir"/t1
@@ -195,20 +199,8 @@ fi
 
 t1bet_f=0.4  # parameter passed to FSL's  bet
 t1tissuefrac=0.9  # the fraction a voxel must be of a given tissue type to be included in that tissue's mask (for the pv masks)
-croppad=2  # amount to pad image when cropping
-
-
-# Crop image
-lims=( $(fslstats "$t1" -w) )
-sizepad=$((croppad * 2))
-xmin=$((lims[0] - croppad))
-xsize=$((lims[1] + sizepad))
-ymin=$((lims[2] - croppad))
-ysize=$((lims[3] + sizepad))
-zmin=$((lims[4] - croppad))
-zsize=$((lims[5] + sizepad))
-logcmd t1croplog fslroi "$t1" "$t1c" $xmin $xsize $ymin $ysize $zmin $zsize
-qcrun static "T1 crop" "$t1c" "$qcoutdir"
+croppad1=40  # amount to pad image when cropping
+croppad2=10
 
 # BET
 #    Extract the brain from the image
@@ -216,8 +208,36 @@ qcrun static "T1 crop" "$t1c" "$qcoutdir"
 
 # Do bet
 mkdir "$t1betdir"
-logcmd betlog bet "$t1c" "$t1betimagec" -f "$t1bet_f" -R
-qcrun fade "T1" "BET" "$t1c" "$t1betimagec" "$qcoutdir" --logprefix logs/betlog
+logcmd betlog bet "$t1" "$t1betimage" -f "$t1bet_f" -R -s
+qcrun fade "T1" "BET" "$t1" "$t1betimage" "$qcoutdir" --logprefix logs/betlog
+
+
+# Crop image
+lims=( $(fslstats "$t1skull" -w) )
+sizepad=$((croppad1 * 2))
+xmin=$((lims[0] - croppad1))
+xsize=$((lims[1] + sizepad))
+ymin=$((lims[2] - croppad1))
+ysize=$((lims[3] + sizepad))
+zmin=$((lims[4] - croppad1))
+zsize=$((lims[5] + sizepad))
+logcmd t1croplog fslroi "$t1" "$t1cskull" $xmin $xsize $ymin $ysize $zmin $zsize
+qcrun static "T1 crop 1" "$t1cskull" "$qcoutdir"
+logcmd t1croplog fslroi "$t1betimage" "$t1betimagecskull" $xmin $xsize $ymin $ysize $zmin $zsize
+qcrun static "BET crop 1" "$t1betimagecskull" "$qcoutdir"
+
+lims2=( $(fslstats "$t1cskull" -w) )
+sizepad=$((croppad2 * 2))
+xmin2=$((lims2[0] - croppad2))
+xsize2=$((lims2[1] + sizepad))
+ymin2=$((lims2[2] - croppad2))
+ysize2=$((lims2[3] + sizepad))
+zmin2=$((lims2[4] - croppad2))
+zsize2=$((lims2[5] + sizepad))
+logcmd t1croplog fslroi "$t1cskull" "$t1c" $xmin2 $xsize2 $ymin2 $ysize2 $zmin2 $zsize2
+qcrun static "T1 crop 2" "$t1c" "$qcoutdir"
+logcmd t1croplog fslroi "$t1betimagecskull" "$t1betimagec" $xmin2 $xsize2 $ymin2 $ysize2 $zmin2 $zsize2
+qcrun static "BET crop 2" "$t1betimagec" "$qcoutdir"
 
 # Segmentation
 #    Segment into white and grey matter. Simultaneously perform bias
