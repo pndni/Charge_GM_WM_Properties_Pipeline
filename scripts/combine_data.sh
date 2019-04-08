@@ -1,8 +1,7 @@
 #!/bin/bash
 # Combine data script
 #    reads stdin as a list of subjects and then combines the stats
-#    from $subject/stats_out/$1.txt into $1_combined.txt, creating
-#    $subject/stats_out/$1_flat.txt as an intermediary
+#    from $subject/stats_out/$1.txt into $1_combined.txt
 
 
 set -e
@@ -101,7 +100,7 @@ combine_flattened (){
     	    if [ "$top" != "$topref" ]
     	    then
     	        >&2 echo "first line of $fname does not match. Exiting"
-    	        exit 2
+    	        exit 1
     	    fi
         fi
         echo -e "$rowname\t$(tail -n 1 $fname)"
