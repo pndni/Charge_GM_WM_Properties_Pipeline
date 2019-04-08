@@ -36,7 +36,7 @@ node[shape=rect, color=blue, fontcolor=blue];
 "DTI structural image"
 }
 subgraph clustermaps{
-"T1 image" -> "Brain extraction (BET)" -> "T1 brain image" -> "Crop" -> "T1 cropped brain image" -> "Tissue classification (FAST)"
+"T1 image" -> "Brain extraction (BET)" -> "T1 brain image" -> "T1 Crop" -> "T1 cropped brain image" -> "Tissue classification (FAST)"
 "T1 brain image" -> "Crop parameters" -> "T1 Crop"
 "Tissue classification (FAST)" -> {"GM/WM maps", "T1 bet-nonuniformity-corrected image"}
 {"T1 bet-nonuniformity-corrected image", "MNI reference brain"} -> "Linear registration (FLIRT)" -> "Reference to T1 linear transformation"
