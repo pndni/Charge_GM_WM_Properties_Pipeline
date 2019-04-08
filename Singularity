@@ -18,14 +18,14 @@ From: pndni/FSL-and-freesurfer:fsl-6.0.1_freesurfer-6.0.1_1.0.1
 
 %appenv charge
     source $SCIF_APPENV_all
-    CHARGEDIR=$SCIF_APPROOT
+    CHARGEDIR=$SCIF_APPROOT_charge
     export CHARGEDIR
 
 %appenv trace
     source $SCIF_APPENV_charge
     source /opt/reprozip/bin/activate
 
-%apprun charge
+%apprun trace
     reprozip trace /bin/bash $CHARGEDIR/scripts/pipeline.sh "$@"
 
 %apprun charge
