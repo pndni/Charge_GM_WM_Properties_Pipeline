@@ -12,7 +12,7 @@ set -e
 
 set -u
 
-subject=$1
+subject="$1"
 
 indir=  # TODO: set the input directory (e.g. /projects/charge/$subject)
 outdir=  # TODO: set to output directory (e.g. /projects/charge_output/$subject)
@@ -21,11 +21,11 @@ logdir=  # TODO: set log directory (e.g. /projects/charge_output/logs).
 
 # TODO: set these values based on your file naming scheme
 # These should be the base filename only, not the full path
-t1=${subject}_t1w.nii
-dti=${subject}_dti.nii
-bvec=${subject}.bvec
-bval=${subject}.bval
+t1="$subject"_t1w.nii
+dti="$subject"_dti.nii
+bvec="$subject".bvec
+bval="$subject".bval
 
-$CHARGEDIR/scripts/pipeline.sh -q $indir $t1 $outdir $dti $bvec $bval \
-> $logdir/${subject}_stdout.log \
-2> $logdir/${subject}_stderr.log
+"$CHARGEDIR"/scripts/pipeline.sh -q "$indir" "$t1" "$outdir" "$dti" "$bvec" "$bval" \
+> "$logdir"/"$subject"_stdout.log \
+2> "$logdir"/"$subject"_stderr.log

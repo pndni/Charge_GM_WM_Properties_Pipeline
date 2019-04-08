@@ -20,12 +20,12 @@ then
     >&2 usage
 fi
 
-indir=$1
-suffix=$2
+indir="$1"
+suffix="$2"
 
-if [ $(ls $indir/*$suffix | wc -l) != 1 ];
+if [ $(ls "$indir"/*"$suffix" | wc -l) != 1 ];
 then
     >&2 echo "Could not find exactly one file in \"$indir\" with suffix \"$suffix\""
     exit 1
 fi
-basename $(ls $indir/*$suffix)
+basename "$(ls "$indir"/*"$suffix")"
