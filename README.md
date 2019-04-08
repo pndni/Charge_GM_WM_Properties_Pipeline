@@ -263,7 +263,8 @@ QC pages should be used to verify that the pipeline ran successfully for each su
 Some things to look out for:
 
 1. Ensure that the skull is not cropped in the initial cropping steps
-2. Ensure that all the registration steps worked
+2. Check the registration outputs
+3. Check for warnings or errors in the log files on the QC page
 
 # Combining data from all the subjects
 

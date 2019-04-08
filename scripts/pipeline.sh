@@ -55,7 +55,6 @@ then
     error "Output director already exists. Aborting"
 fi
 
-startdir="$PWD"
 mkdir "$outdir"
 pushd "$outdir" > /dev/null
 
@@ -198,13 +197,11 @@ fi
 
 
 t1bet_f=0.4  # parameter passed to FSL's  bet
-t1tissuefrac=0.9  # the fraction a voxel must be of a given tissue type to be included in that tissue's mask (for the pv masks)
-croppad1=40  # amount to pad image when cropping
-croppad2=10
+croppad1=40  # amount to pad image when cropping to skull estimate
+croppad2=10  # amount to pad image when cropping to T1
 
 # BET
 #    Extract the brain from the image
-
 
 # Do bet
 mkdir "$t1betdir"
@@ -223,7 +220,7 @@ zmin=$((lims[4] - croppad1))
 zsize=$((lims[5] + sizepad))
 logcmd t1croplog fslroi "$t1" "$t1cskull" $xmin $xsize $ymin $ysize $zmin $zsize
 qcrun static "T1 crop 1" "$t1cskull" "$qcoutdir"
-logcmd t1croplog fslroi "$t1betimage" "$t1betimagecskull" $xmin $xsize $ymin $ysize $zmin $zsize
+logcmd betcroplog fslroi "$t1betimage" "$t1betimagecskull" $xmin $xsize $ymin $ysize $zmin $zsize
 qcrun static "BET crop 1" "$t1betimagecskull" "$qcoutdir"
 
 lims2=( $(fslstats "$t1cskull" -w) )
@@ -234,9 +231,9 @@ ymin2=$((lims2[2] - croppad2))
 ysize2=$((lims2[3] + sizepad))
 zmin2=$((lims2[4] - croppad2))
 zsize2=$((lims2[5] + sizepad))
-logcmd t1croplog fslroi "$t1cskull" "$t1c" $xmin2 $xsize2 $ymin2 $ysize2 $zmin2 $zsize2
+logcmd t1croplog2 fslroi "$t1cskull" "$t1c" $xmin2 $xsize2 $ymin2 $ysize2 $zmin2 $zsize2
 qcrun static "T1 crop 2" "$t1c" "$qcoutdir"
-logcmd t1croplog fslroi "$t1betimagecskull" "$t1betimagec" $xmin2 $xsize2 $ymin2 $ysize2 $zmin2 $zsize2
+logcmd betcroplog2 fslroi "$t1betimagecskull" "$t1betimagec" $xmin2 $xsize2 $ymin2 $ysize2 $zmin2 $zsize2
 qcrun static "BET crop 2" "$t1betimagec" "$qcoutdir"
 
 # Segmentation
@@ -302,6 +299,9 @@ then
 fi
 
 # ensure brain mask is not clipped
+# this check doesn't make a lot of sense now that I've changed how the cropping
+# works, but I'm leaving it in because it should still be true, and if this check
+# fails something has gone horribly wrong
 logcmd checkedgeslog fslpython "$CHARGEDIR"/utils/check_edges.py "$brainmask_native"
 
 # MINC intensity correction
@@ -368,7 +368,7 @@ statswrapper () {
     local out=
     if [ $3 == "--skew" ] || [ $3 == "--kurtosis" ] || [ $3 == "--median" ]
     then
-	out=( $(fslpython "$CHARGEDIR"/utils/stats.py -K "$1" "$2" "$3") ) || error "pystatserror"
+	out=( $(fslpython "$CHARGEDIR"/utils/stats.py -K "$1" "$2" "$3") ) || error "pystatserror $1 $2"
     else
 	out=( $(fslstats -K "$1" "$2" "$3") ) || error "fslstatserror $1 $2"
     fi
@@ -391,6 +391,11 @@ printstats() {
     local imagename="$2"
     local image="$3"
     local nlabels="$4"
+    
+    local rangetmp
+    local rangebraintmp
+    local voltmp
+    local volbraintmp
     # mean
     echo -en "${imagename}_mean"
     echotsv "$(statswrapper "$atlas" "$image" -m $nlabels)" || error "echotsv"
@@ -407,8 +412,8 @@ printstats() {
     echo -e "\t"$(statswrapper "$brainmask_native" "$image" -s 1)
 
     # range
-    local rangetmp=$(statswrapper "$atlas" "$image" -R $((nlabels * 2))) || error "statswrapper"
-    local rangebraintmp=( $(statswrapper "$brainmask_native" "$image" -R 2) ) || error "statswrapper"
+    rangetmp=$(statswrapper "$atlas" "$image" -R $((nlabels * 2))) || error "statswrapper"
+    rangebraintmp=( $(statswrapper "$brainmask_native" "$image" -R 2) ) || error "statswrapper"
     echo -en "${imagename}_min"
     echotsv "$rangetmp" 0 2 || error "echotsv"
     echo -e "\t"${rangebraintmp[0]}
@@ -417,8 +422,8 @@ printstats() {
     echo -e "\t"${rangebraintmp[1]}
 
     # volume
-    local voltmp=$(statswrapper "$atlas" "$image" -v $((nlabels * 2))) || error "statswrapper"
-    local volbraintmp=( $(statswrapper "$brainmask_native" "$image" -v 2) ) || error "statswrapper"
+    voltmp=$(statswrapper "$atlas" "$image" -v $((nlabels * 2))) || error "statswrapper"
+    volbraintmp=( $(statswrapper "$brainmask_native" "$image" -v 2) ) || error "statswrapper"
     echo -en "${imagename}_nvoxels"
     echotsv "$voltmp" 0 2 || error "echotsv"
     echo -e "\t"${volbraintmp[0]}
@@ -437,7 +442,7 @@ printstats() {
     echo -e "\t"$(statswrapper "$brainmask_native" "$image" --kurtosis 1)
 }
 
-echo "# Data calculated using $(basename $0) with sha256 has ${selfhash}" > "$statsfile"
+echo "# Data calculated using $(basename $0) with sha256 ${selfhash}"     > "$statsfile"
 echo "# Input directory: $indir"                                          >> "$statsfile"
 echo "# T1 filename: $t1"                                                 >> "$statsfile"
 echo "# DTI filename: $dti"                                               >> "$statsfile"
@@ -446,14 +451,14 @@ echo "# bval: $bval"                                                      >> "$s
 echo "# Onput directory: $outdir"                                         >> "$statsfile"
 echo "# $(date)"                                                          >> "$statsfile"
 echotsv "${label_names[*]}"                                               >> "$statsfile" || error "echotsv"
-echo -e "\tBrain"                                                            >> "$statsfile"
+echo -e "\tBrain"                                                         >> "$statsfile"
 
 printstats "$combined_atlas" "T1" "$nucorc" 28 >> "$statsfile" || error "printstats"
 # printstats $combined_atlas "nocor" $t1c 28 >> $statsfile || error "printstats"
 # printstats "pvatlas" $combined_atlas2 "cor" $nucorc 28 >> $statsfile || error "printstats"
 # printstats "pvatlas" $combined_atlas2 "nocor" $t1c 28 >> $statsfile || error "printstats"
 
-echo "# Data calculated using $(basename $0) with sha256 has ${selfhash}" > "$statsfile_simple"
+echo "# Data calculated using $(basename $0) with sha256 ${selfhash}"     > "$statsfile_simple"
 echo "# Input directory: $indir"                                          >> "$statsfile_simple"
 echo "# T1 filename: $t1"                                                 >> "$statsfile_simple"
 echo "# DTI filename: $dti"                                               >> "$statsfile_simple"
@@ -462,7 +467,7 @@ echo "# bval: $bval"                                                      >> "$s
 echo "# Onput directory: $outdir"                                         >> "$statsfile_simple"
 echo "# $(date)"                                                          >> "$statsfile_simple"
 echotsv "${label_names_simple[*]}"                                        >> "$statsfile_simple" || error "echotsv"
-echo -e "\tBrain"                                                            >> "$statsfile_simple"
+echo -e "\tBrain"                                                         >> "$statsfile_simple"
 
 printstats "$simple_atlas" "T1" "$nucorc" 2 >> "$statsfile_simple" || error "printstats"
 # printstats $simple_atlas "nocor" $t1c 2 >> $statsfile_simple || error "printstats"
@@ -473,10 +478,7 @@ printstats "$simple_atlas" "T1" "$nucorc" 2 >> "$statsfile_simple" || error "pri
 
 # adapted from psmd.sh
 
-
-
 # Setup
-
 
 if [ -z "$rundti" ]
 then
@@ -508,8 +510,8 @@ dtiregdir=dti_reg_out
 structforreg="$dtiregdir"/dti_struct_for_reg$ext
 dti2t1="$dtiregdir"/dti2struct_affine.mat
 struct_native="$dtiregdir"/dti_struct_native$ext
-dtifa_native="$dtiregdir"/dt1_FA_native$ext
-dtimd_native="$dtiregdir"/dt1_MD_native$ext
+dtifa_native="$dtiregdir"/dti_FA_native$ext
+dtimd_native="$dtiregdir"/dti_MD_native$ext
 
 # Eddy correction
 
@@ -562,12 +564,14 @@ mkdir "$dtiregdir"
 
 logcmd dtibetroilog fslroi "$dtibetimage" "$structforreg" $refinds 1
 logcmd dtiflirtlog flirt -ref "$t1betcorc" -in "$structforreg" -omat "$dti2t1" -out "$struct_native"
-qcrun logs "DTI to T1 reg" logs/dtiflirtlog "$qcoutdir"
+qcrun fade "T1" "DTI struct reference in T1 coords" "$nucorc" "$struct_native" "$qcoutdir" --logprefix logs/dtiflirtlog
 logcmd dtifatransformlog flirt -ref "$t1betcorc" -init "$dti2t1" -applyxfm -in "$dtifa" -out "$dtifa_native"
 qcrun fade "T1" "FA in T1 coords" "$nucorc" "$dtifa_native" "$qcoutdir" --logprefix logs/dtifatransformlog
 logcmd dtimdtransformlog flirt -ref "$t1betcorc" -init "$dti2t1" -applyxfm -in "$dtimd" -out "$dtimd_native"
 qcrun fade "T1" "MD in T1 coords" "$nucorc" "$dtimd_native" "$qcoutdir" --logprefix logs/dtimdtransformlog
 qcrun static "Brain mask over FA" "$dtifa_native" "$qcoutdir" --labelfile "$brainmask_native"
+qcrun static "Brain mask over MD" "$dtimd_native" "$qcoutdir" --labelfile "$brainmask_native"
+qcrun static "Lobe mask over FA" "$dtifa_native" "$qcoutdir" --labelfile "$atlas_native"
 qcrun static "Lobe mask over MD" "$dtimd_native" "$qcoutdir" --labelfile "$atlas_native"
 
 # Data extraction
