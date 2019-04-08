@@ -102,7 +102,7 @@ logcmd(){
     local logbase
     logbase=logs/$1
     shift
-    echo "Running: \"$@\" > >(tee ${logbase}_stdout.txt) 2> >(tee ${logbase}_stderr.txt >&2)"
+    echo "Running: " "$@" " > >(tee ${logbase}_stdout.txt) 2> >(tee ${logbase}_stderr.txt >&2)"
     "$@" > >(tee ${logbase}_stdout.txt) 2> >(tee ${logbase}_stderr.txt >&2) || error "logcmd $1"
 }
 
@@ -138,12 +138,11 @@ csf=0
 gm=1
 wm=2
 
-t1betdir="$outdir"/t1_bet_out
-t1betimage="$t1betdir"/bet$ext
-t1betimagec="$t1betdir"/bet_cropped$ext
+t1betdir=t1_bet_out
 t1c="$t1betdir"/t1_cropped$ext
+t1betimagec="$t1betdir"/bet_cropped$ext
 
-t1fastdir="$outdir"/t1_fast_out
+t1fastdir=t1_fast_out
 t1fastout="$t1fastdir"/t1
 t1betcorc="${t1fastout}"_restore$ext
 t1segc="${t1fastout}"_seg$ext
@@ -154,7 +153,7 @@ wmmaskc="${t1fastout}"_seg_${wm}$ext
 # gmmask2=${t1fastout}_seg_${gm}_pv$ext
 # wmmask2=${t1fastout}_seg_${wm}_pv$ext
 
-t1regdir="$outdir"/t1_reg_out
+t1regdir=t1_reg_out
 s2raff="$t1regdir"/struct2mni_affine.mat # affine matrix from the T1 image to the MNI reference
 s2rwarp="$t1regdir"/struct2mni_warp$ext # warp transformation from the T1 image to the MNI reference
 r2swarp="$t1regdir"/mni2struct_warp$ext # warp transformation from the MNI reference to the T1 image
@@ -162,11 +161,10 @@ t1betcorref="$t1regdir"/t1_bet_cor_ref$ext # betcor transformed to MNI coords
 atlas_native="$t1regdir"/atlas_labels_native$ext
 brainmask_native="$t1regdir"/icbm_mask_native$ext
 
-nuoutdir="$outdir"/t1_nucor_out
-nucor="$nuoutdir"/nu$ext
+nuoutdir=t1_nucor_out
 nucorc="$nuoutdir"/nu_cropped$ext
 
-statsdir="$outdir"/stats_out
+statsdir=stats_out
 statsfile="$statsdir"/stats.txt
 statsfile_simple="$statsdir"/stats_simple.txt
 #statsfile2=$statsdir/stats_wmprobmap.txt
@@ -183,7 +181,7 @@ atlas_lobe_wm="$statsdir"/atlas_lobe_wm$ext
 simple_atlas="$statsdir"/atlas_simple$ext
 # simple_atlas2=$statsdir/atlas_simple_pv$ext
 
-qcoutdir="$outdir"/QC
+qcoutdir=QC
 if [ $qc == 1 ]
 then
     mkdir "$qcoutdir"
@@ -197,24 +195,11 @@ fi
 
 t1bet_f=0.4  # parameter passed to FSL's  bet
 t1tissuefrac=0.9  # the fraction a voxel must be of a given tissue type to be included in that tissue's mask (for the pv masks)
-croppad=10  # amount to pad image when cropping
-
-# BET
-#    Extract the brain from the image
-
-
-# Do bet
-mkdir "$t1betdir"
-logcmd betlog bet "$t1" "$t1betimage" -f "$t1bet_f" -R
-qcrun fade "T1" "BET" "$t1" "$t1betimage" "$qcoutdir" --logprefix logs/betlog
-
-# Segmentation
-#    Segment into white and grey matter. Simultaneously perform bias
-#    field correction
+croppad=2  # amount to pad image when cropping
 
 
 # Crop image
-lims=( $(fslstats "$t1betimage" -w) )
+lims=( $(fslstats "$t1" -w) )
 sizepad=$((croppad * 2))
 xmin=$((lims[0] - croppad))
 xsize=$((lims[1] + sizepad))
@@ -222,10 +207,21 @@ ymin=$((lims[2] - croppad))
 ysize=$((lims[3] + sizepad))
 zmin=$((lims[4] - croppad))
 zsize=$((lims[5] + sizepad))
-logcmd t1betcroplog fslroi "$t1betimage" "$t1betimagec" $xmin $xsize $ymin $ysize $zmin $zsize
-qcrun static "BET crop" "$t1betimagec" "$qcoutdir"
 logcmd t1croplog fslroi "$t1" "$t1c" $xmin $xsize $ymin $ysize $zmin $zsize
 qcrun static "T1 crop" "$t1c" "$qcoutdir"
+
+# BET
+#    Extract the brain from the image
+
+
+# Do bet
+mkdir "$t1betdir"
+logcmd betlog bet "$t1c" "$t1betimagec" -f "$t1bet_f" -R
+qcrun fade "T1" "BET" "$t1c" "$t1betimagec" "$qcoutdir" --logprefix logs/betlog
+
+# Segmentation
+#    Segment into white and grey matter. Simultaneously perform bias
+#    field correction
 
 mkdir "$t1fastdir"
 logcmd fastlog fast --verbose --out="$t1fastout" -B --segments "$t1betimagec"
@@ -292,11 +288,8 @@ logcmd checkedgeslog fslpython "$CHARGEDIR"/utils/check_edges.py "$brainmask_nat
 
 
 mkdir "$nuoutdir"
-logcmd nucorrectlog mri_nu_correct.mni --i "$t1" --o "$nucor"
-qcrun fade "T1" "NU corrected T1" "$t1" "$nucor" "$qcoutdir" --logprefix=logs/nucorrectlog
-
-logcmd nucroplog fslroi "$nucor" "$nucorc" $xmin $xsize $ymin $ysize $zmin $zsize
-qcrun static "NU corrected T1 cropped" "$nucorc" "$qcoutdir"
+logcmd nucorrectlog mri_nu_correct.mni --i "$t1c" --o "$nucorc"
+qcrun fade "T1" "NU corrected T1" "$t1c" "$nucorc" "$qcoutdir" --logprefix=logs/nucorrectlog
 
 # Calculate intensity values
 
@@ -320,7 +313,35 @@ fslmaths "$atlas_lobe_gm" -add "$atlas_lobe_wm" "$simple_atlas"
 # Actually calculate stats
 
 
-label_names=( Frontal_r_gm Parietal_r_gm Temporal_r_gm Occipital_r_gm Frontal_l_gm Parietal_l_gm Temporal_l_gm Occipital_l_gm Cerebellum_l_gm Sub-cortical_l_gm Brainstem_l_gm Cerebellum_r_gm Sub-cortical_r_gm Brainstem_r_gm Frontal_r_wm Parietal_r_wm Temporal_r_wm Occipital_r_wm Frontal_l_wm Parietal_l_wm Temporal_l_wm Occipital_l_wm Cerebellum_l_wm Sub-cortical_l_wm Brainstem_l_wm Cerebellum_r_wm Sub-cortical_r_wm Brainstem_r_wm )
+declare -a label_names
+label_names[1]=Frontal_r_gm
+label_names[2]=Parietal_r_gm
+label_names[3]=Temporal_r_gm
+label_names[4]=Occipital_r_gm
+label_names[5]=Frontal_l_gm
+label_names[6]=Parietal_l_gm
+label_names[7]=Temporal_l_gm
+label_names[8]=Occipital_l_gm
+label_names[9]=Cerebellum_l_gm
+label_names[10]=Sub-cortical_l_gm
+label_names[11]=Brainstem_l_gm
+label_names[12]=Cerebellum_r_gm
+label_names[13]=Sub-cortical_r_gm
+label_names[14]=Brainstem_r_gm
+label_names[15]=Frontal_r_wm
+label_names[16]=Parietal_r_wm
+label_names[17]=Temporal_r_wm
+label_names[18]=Occipital_r_wm
+label_names[19]=Frontal_l_wm
+label_names[20]=Parietal_l_wm
+label_names[21]=Temporal_l_wm
+label_names[22]=Occipital_l_wm
+label_names[23]=Cerebellum_l_wm
+label_names[24]=Sub-cortical_l_wm
+label_names[25]=Brainstem_l_wm
+label_names[26]=Cerebellum_r_wm
+label_names[27]=Sub-cortical_r_wm
+label_names[28]=Brainstem_r_wm
 label_names_simple=( gm wm )
 
 statswrapper () {
@@ -451,19 +472,19 @@ fi
 
 # Create variables
 
-dtibetdir="$outdir"/dti_bet_out
+dtibetdir=dti_bet_out
 dtibetimage="$dtibetdir"/bet$ext
 dtibetmask="$dtibetdir"/bet_mask$ext
 
-eddycordir="$outdir"/dti_eddy_out
+eddycordir=dti_eddy_out
 eddycorimage="$eddycordir"/eddycor
 
-dtifitdir="$outdir"/dti_fit_out
+dtifitdir=dti_fit_out
 dtifitbase="$dtifitdir"/dti
 dtifa="${dtifitbase}"_FA$ext
 dtimd="${dtifitbase}"_MD$ext
 
-dtiregdir="$outdir"/dti_reg_out
+dtiregdir=dti_reg_out
 structforreg="$dtiregdir"/dti_struct_for_reg$ext
 dti2t1="$dtiregdir"/dti2struct_affine.mat
 struct_native="$dtiregdir"/dti_struct_native$ext
