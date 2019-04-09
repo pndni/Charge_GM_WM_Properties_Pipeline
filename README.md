@@ -387,6 +387,8 @@ normalizing the T1 intensity values).
 ![Pipeline flowchart](doc/pipeline.svg)
 
 # References
+| Algorithm/software | Citation |
+|--------------------|----------|
 | N3 algorithm | J. G. Sled, A. P. Zijdenbos, and A. C. Evans, ``A non-parametric method for automatic correction of intensity non-uniformity in MRI data, IEEE Transactions on Medical Imaging, vol. 17, pp. 87-97, February 1998. |
 | parallel     | O. Tange (2011): GNU Parallel - The Command-Line Power Tool, ;login: The USENIX Magazine, February 2011:42-47. |
 | FSL (ref 1)    | M.W. Woolrich, S. Jbabdi, B. Patenaude, M. Chappell, S. Makni, T. Behrens, C. Beckmann, M. Jenkinson, S.M. Smith. Bayesian analysis of neuroimaging data in FSL. NeuroImage, 45:S173-86, 2009 |
