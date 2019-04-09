@@ -300,6 +300,17 @@ then
    error "Error with atlas label file. Aborting"
 fi
 
+nlabels_atlas=$(fslpython utils/nlabels.py "$atlas_native") || error "nlabels error"
+if [ $nlabels_atlas -ne 14 ]
+then
+    error "Transformed atlas has the incorrect number of labels. Probably an error with the transformation. Aborting"
+fi
+nlabels_brain=$(fslpython utils/nlabels.py "$brainmask_native") || error "nlabels error"
+if [ $nlabels_brain -ne 1 ]
+then
+    error "Transformed brain mask has the incorrect number of labels. Probably an error with the transformation. Aborting"
+fi
+
 # ensure brain mask is not clipped
 # this check doesn't make a lot of sense now that I've changed how the cropping
 # works, but I'm leaving it in because it should still be true, and if this check
@@ -324,15 +335,15 @@ mkdir "$statsdir"
 
 # Construct combined atlas by offsetting wm values by 14
 
-fslmaths "$atlas_native" -mas "$gmmaskc" "$gm_atlas"
-fslmaths "$atlas_native" -add 14 -mas "$wmmaskc" -mas "$atlas_native" "$wm_atlas"
-fslmaths "$gm_atlas" -add "$wm_atlas" "$combined_atlas"
+fslmaths "$atlas_native" -mas "$gmmaskc" "$gm_atlas" -odt int
+fslmaths "$atlas_native" -add 14 -mas "$wmmaskc" -mas "$atlas_native" "$wm_atlas" -odt int
+fslmaths "$gm_atlas" -add "$wm_atlas" "$combined_atlas" -odt int
 
 # Construct atlases combining front, parietal, occipital, and temporal lobes from both hemispheres
 
-fslmaths "$combined_atlas" -uthr 8.5 -bin "$atlas_lobe_gm"
-fslmaths "$combined_atlas" -thr 14.5 -uthr 22.5 -bin -mul 2 "$atlas_lobe_wm"
-fslmaths "$atlas_lobe_gm" -add "$atlas_lobe_wm" "$simple_atlas"
+fslmaths "$combined_atlas" -uthr 8.5 -bin "$atlas_lobe_gm" -odt int
+fslmaths "$combined_atlas" -thr 14.5 -uthr 22.5 -bin -mul 2 "$atlas_lobe_wm" -odt int
+fslmaths "$atlas_lobe_gm" -add "$atlas_lobe_wm" "$simple_atlas" -odt int
 
 # Actually calculate stats
 
