@@ -4,7 +4,7 @@ set -e  # exit on error
 set -u  # exit on undefined variable
 \unalias -a  # remove all aliases (e.g. some systems alias 'cp' to 'cp -i')
 
-
+version=1.0.0-alpha
 
 error() {
   >&2 echo $1
@@ -165,6 +165,8 @@ atlas_native="$t1regdir"/atlas_labels_native$ext
 brainmask_native="$t1regdir"/icbm_mask_native$ext
 
 nuoutdir=t1_nucor_out
+nucor="$nuoutdir"/nu$ext
+nucorcskull="$nuoutdir"/nu_cropped_skull$ext
 nucorc="$nuoutdir"/nu_cropped$ext
 
 statsdir=stats_out
@@ -308,7 +310,9 @@ logcmd checkedgeslog fslpython "$CHARGEDIR"/utils/check_edges.py "$brainmask_nat
 
 
 mkdir "$nuoutdir"
-logcmd nucorrectlog mri_nu_correct.mni --i "$t1c" --o "$nucorc"
+logcmd nucorrectlog mri_nu_correct.mni --i "$t1" --o "$nucor"
+logcmd nucroplog fslroi "$nucor" "$nucorcskull" $xmin $xsize $ymin $ysize $zmin $zsize
+logcmd nucroplog fslroi "$nucorcskull" "$nucorc" $xmin2 $xsize2 $ymin2 $ysize2 $zmin2 $zsize2
 qcrun fade "T1" "NU corrected T1" "$t1c" "$nucorc" "$qcoutdir" --logprefix=logs/nucorrectlog
 
 # Calculate intensity values
@@ -443,6 +447,7 @@ printstats() {
 }
 
 echo "# Data calculated using $(basename $0) with sha256 ${selfhash}"     > "$statsfile"
+echo "# Version: $version"                                                >> "$statsfile"
 echo "# Input directory: $indir"                                          >> "$statsfile"
 echo "# T1 filename: $t1"                                                 >> "$statsfile"
 echo "# DTI filename: $dti"                                               >> "$statsfile"
@@ -459,6 +464,7 @@ printstats "$combined_atlas" "T1" "$nucorc" 28 >> "$statsfile" || error "printst
 # printstats "pvatlas" $combined_atlas2 "nocor" $t1c 28 >> $statsfile || error "printstats"
 
 echo "# Data calculated using $(basename $0) with sha256 ${selfhash}"     > "$statsfile_simple"
+echo "# Version: $version"                                                >> "$statsfile_simple"
 echo "# Input directory: $indir"                                          >> "$statsfile_simple"
 echo "# T1 filename: $t1"                                                 >> "$statsfile_simple"
 echo "# DTI filename: $dti"                                               >> "$statsfile_simple"
