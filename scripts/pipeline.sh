@@ -300,12 +300,12 @@ then
    error "Error with atlas label file. Aborting"
 fi
 
-nlabels_atlas=$(fslpython utils/nlabels.py "$atlas_native") || error "nlabels error"
+nlabels_atlas=$(fslpython "$CHARGEDIR"/utils/nlabels.py "$atlas_native") || error "nlabels error"
 if [ $nlabels_atlas -ne 14 ]
 then
     error "Transformed atlas has the incorrect number of labels. Probably an error with the transformation. Aborting"
 fi
-nlabels_brain=$(fslpython utils/nlabels.py "$brainmask_native") || error "nlabels error"
+nlabels_brain=$(fslpython "$CHARGEDIR"/utils/nlabels.py "$brainmask_native") || error "nlabels error"
 if [ $nlabels_brain -ne 1 ]
 then
     error "Transformed brain mask has the incorrect number of labels. Probably an error with the transformation. Aborting"
