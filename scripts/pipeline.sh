@@ -165,6 +165,8 @@ atlas_native="$t1regdir"/atlas_labels_native$ext
 brainmask_native="$t1regdir"/icbm_mask_native$ext
 
 nuoutdir=t1_nucor_out
+nucor="$nuoutdir"/nu$ext
+nucorcskull="$nuoutdir"/nu_cropped_skull$ext
 nucorc="$nuoutdir"/nu_cropped$ext
 
 statsdir=stats_out
@@ -308,7 +310,9 @@ logcmd checkedgeslog fslpython "$CHARGEDIR"/utils/check_edges.py "$brainmask_nat
 
 
 mkdir "$nuoutdir"
-logcmd nucorrectlog mri_nu_correct.mni --i "$t1c" --o "$nucorc"
+logcmd nucorrectlog mri_nu_correct.mni --i "$t1" --o "$nucor"
+logcmd nucroplog fslroi "$nucor" "$nucorcskull" $xmin $xsize $ymin $ysize $zmin $zsize
+logcmd nucroplog fslroi "$nucorcskull" "$nucorc" $xmin2 $xsize2 $ymin2 $ysize2 $zmin2 $zsize2
 qcrun fade "T1" "NU corrected T1" "$t1c" "$nucorc" "$qcoutdir" --logprefix=logs/nucorrectlog
 
 # Calculate intensity values

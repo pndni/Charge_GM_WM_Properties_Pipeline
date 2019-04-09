@@ -59,7 +59,8 @@ subgraph clustermaps{
 }
 
 subgraph "clusterT1 data" {
-"T1 cropped image" -> "Non-uniformity correction (mri_nu_correct.mni)" -> "NU corrected T1"
+"T1 image" -> "Non-uniformity correction (mri_nu_correct.mni)" -> "NU crop" -> "NU corrected T1"
+"Crop parameters" -> "NU crop"
 }
 
 subgraph "clusterDTI" {
