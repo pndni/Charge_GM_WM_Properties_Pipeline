@@ -10,7 +10,7 @@ import sys
 
 def std(x):
     # this seems to mimic the fslstats std calculation
-    if len(x) == 1:
+    if x.size == 1:
         return 0.0
     else:
         return np.std(x, ddof=1)
@@ -70,10 +70,13 @@ def main(arglist=None):
 
     if args.K:
         mask = np.asanyarray(nibabel.load(args.K).dataobj)
-        labels = [l for l in np.unique(mask) if l > 0]
+        uniq = np.unique(mask)
+        if not np.all(uniq == uniq.astype(np.int)):
+            raise RuntimeError("mask must have only integer values")
+        labels = np.arange(1, np.max(mask) + 1)
         out = []
         for l in labels:
-            out.extend([labeled_comprehension(input, mask, l, func, np.float, np.nan) for func in args.statslist])
+            out.extend([labeled_comprehension(input, mask, l, func, np.float, 0.0) for func in args.statslist])
     else:
         out = [func(input) for func in args.statslist]
     return out
@@ -95,8 +98,8 @@ def test():
     mask = np.zeros(input.shape, dtype=np.int)
     mask[:2, 0, -1] = 1
     mask[1, 1:3, 1:3] = 2
-    mask[2, 1, 1] = 3
-    assert tuple(np.unique(mask)) == (0, 1, 2, 3)
+    mask[2, 1, 1] = 4
+    assert tuple(np.unique(mask)) == (0, 1, 2, 4)
     nibabel.Nifti1Image(input, np.eye(4)).to_filename(inputfile)
     nibabel.Nifti1Image(mask, np.eye(4)).to_filename(maskfile)
 
