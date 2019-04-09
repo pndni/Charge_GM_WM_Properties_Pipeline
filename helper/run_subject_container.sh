@@ -17,8 +17,14 @@ dti="$subject"_dti.nii
 bvec="$subject".bvec
 bval="$subject".bval
 
-outdirbase="${outdir%/*}"
-outdirlast="${outdir##*/}"
+if [[ "$outdir" =~ .*/.* ]]
+then
+    outdirbase="${outdir%/*}"
+    outdirlast="${outdir##*/}"
+else
+    outdirbase="$outdir"
+    outdirlast=""
+fi
 
 
 # TODO: freesurfer license:
