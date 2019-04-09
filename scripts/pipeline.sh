@@ -4,7 +4,7 @@ set -e  # exit on error
 set -u  # exit on undefined variable
 \unalias -a  # remove all aliases (e.g. some systems alias 'cp' to 'cp -i')
 
-
+version=1.0.0-alpha
 
 error() {
   >&2 echo $1
@@ -443,6 +443,7 @@ printstats() {
 }
 
 echo "# Data calculated using $(basename $0) with sha256 ${selfhash}"     > "$statsfile"
+echo "# Version: $version"                                                >> "$statsfile"
 echo "# Input directory: $indir"                                          >> "$statsfile"
 echo "# T1 filename: $t1"                                                 >> "$statsfile"
 echo "# DTI filename: $dti"                                               >> "$statsfile"
@@ -459,6 +460,7 @@ printstats "$combined_atlas" "T1" "$nucorc" 28 >> "$statsfile" || error "printst
 # printstats "pvatlas" $combined_atlas2 "nocor" $t1c 28 >> $statsfile || error "printstats"
 
 echo "# Data calculated using $(basename $0) with sha256 ${selfhash}"     > "$statsfile_simple"
+echo "# Version: $version"                                                >> "$statsfile_simple"
 echo "# Input directory: $indir"                                          >> "$statsfile_simple"
 echo "# T1 filename: $t1"                                                 >> "$statsfile_simple"
 echo "# DTI filename: $dti"                                               >> "$statsfile_simple"
