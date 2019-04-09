@@ -37,7 +37,6 @@ if __name__ == '__main__':
     logs.set_defaults(sub='logs')
     args = parser.parse_args()
     templatevars = {'name1': args.name1}
-    outbase1 = os.path.join(args.outdir, args.name1)
     if args.sub == 'fade':
         templatevars['name2'] = args.name2
         outbase = os.path.join(args.outdir, args.name1 + "_" + args.name2)
