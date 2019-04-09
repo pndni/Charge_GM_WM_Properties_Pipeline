@@ -6,7 +6,7 @@ NB. This pipeline is a work in progress.
 
 This pipeline calculates average T1 intensity, FA, and MD for grey
 matter and white matter and different lobes using FSL and
-freesurfer. It also calculates a T1 normalization factor based on a
+FreeSurfer. It also calculates a T1 normalization factor based on a
 brain mask
 
 # Installation
@@ -33,7 +33,7 @@ singularity pull --name charge_container.simg shub://pndni/Charge_GM_WM_Properti
 
 First, install the prequisits if they aren't already installed:
 1. [FSL](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation)
-2. [freesurfer](http://www.freesurfer.net/fswiki/DownloadAndInstall)
+2. [FreeSurfer](http://www.freesurfer.net/fswiki/DownloadAndInstall)
 
 Download the appropriate release of this repository from the
 [releases page](https://github.com/pndni/Charge_GM_WM_Properties_Pipeline/releases)
@@ -49,17 +49,19 @@ export CHARGEDIR="Insert charge directory here"
 
 The most basic usage is to call the script directly for a given subject. Using singularity
 ```bash
-singularity run --containall --app charge --bind "input directory":/mnt/input:ro --bind "output directory":/mnt/output -q -f "freesurfer license" /mnt/indir "t1 filename" /mnt/outdir "dti filename" "bvec filename" "bval filename"
+singularity run --containall --app charge --bind "input_directory":/mnt/input:ro --bind "output_directory":/mnt/output -q -f "freesurfer_license" /mnt/indir "t1_filename" /mnt/outdir "dti_filename" "bvec_filename" "bval_filename"
 ```
-where the full path of the t1 file is "input directory"/"t1 filename", etc.
+where the full path of the t1 file is `"input_directory"/"t1_filename"`, etc.
 The `-q` flag turns on QC pages, and the `-f` option specifies the full path of the
-freesurfer license (which must be visible from the running container). This option is required when using
+FreeSurfer license (which must be visible from the running container). This option is required when using
 the singularity container.
-A freesurfer license can be obtained [here](https://surfer.nmr.mgh.harvard.edu/registration.html).
+A FreeSurfer license can be obtained [here](https://surfer.nmr.mgh.harvard.edu/registration.html).
+
+NB. We recommended _not_ having spaces in the filenames or paths
 
 The equivalent command without singularity is
 ```bash
-$CHARGEDIR/scripts/pipeline.sh -q "input directory" "t1 filename" "output directory" "dti filename" "bvec filename" "bval filename"
+$CHARGEDIR/scripts/pipeline.sh -q "input_directory" "t1_filename" "output_directory" "dti_filename" "bvec_filename" "bval_filename"
 ```
 which will make /projects/charge visible from inside the container.
 
@@ -68,7 +70,7 @@ which will make /projects/charge visible from inside the container.
 | Argument | Description                                                                                                                               |
 |----------|-------------------------------------------------------------------------------------------------------------------------------------------|
 | -q       | Output QC page for subject                                                                                                                |
-| -f       | Freesurfer license file. Must be a full path. If using singularity this option is required, and must be visible from inside the container |
+| -f       | FreeSurfer license file. Must be a full path. If using singularity this option is required, and must be visible from inside the container |
 | indir    | Input directory containing T1 image, DTI data, bvec, and bval                                                                             |
 | t1       | Base file name of the T1 scan in nifty format. The full path is therefore $indir/$t1.                                                     |
 | outdir   | Output directory name. Must not exist.                                                                                                    |
@@ -91,7 +93,7 @@ run by calling `./run_subject_container.sh subject1`, for example.
 ### GNU-parallel
 
 An example [file](helper/parallel.sh) is provided for batch processing
-using gnu-parallel. See the comments for details
+using gnu-parallel. See the comments for details.
 
 ### SLURM
 
@@ -142,7 +144,7 @@ singularity pull --name charge_container.simg shub://pndni/Charge_GM_WM_Properti
 ```
 which gets saved to `charge_container.simg`
 
-I download [[run_subject_container.sh](helper/run_subject_container.sh)] from github, and
+I download [run_subject_container.sh](helper/run_subject_container.sh) from github, and
 edit it to be:
 
 ```bash
@@ -172,14 +174,14 @@ outdirlast=${outdir##*/}
 charge_container.sh -q -f /mnt/outdir/license.txt /mnt/indir $t1 /mnt/outdir/$outdirlast $dti $bvec $bval
 ```
 
-If your file names are less predictable (e.g. ${subject}_${date}_t1w.nii),
+If your file names are less predictable (e.g. `${subject}_${date}_t1w.nii`),
 [findfile.sh](helper/findfile.sh) may be used to search for a file with
 a given suffix:
 ```bash
 t1=$(./findfile.sh $indir t1w.nii)
 ```
 
-Next, I download [[parallel.sh](helper/parallel.sh)] and modify it for my system.
+Next, I download [parallel.sh](helper/parallel.sh) and modify it for my system.
 ```bash
 ntasks=3
 logfile=parallel.log
@@ -193,9 +195,9 @@ sub2
 sub3
 ```
 
-Finally, I copy my freesurfer license file to `/project/charge/Charge_GM_WM_Properties_Pipeline_out/license.txt`
+Finally, I copy my FreeSurfer license file to `/project/charge/Charge_GM_WM_Properties_Pipeline_out/license.txt`
 
-so I now have `subject_list`, `run_subject_container.sh`, and `parallel.sh` in the working directory. Next, I run
+so I now have `subject_list`, `run_subject_container.sh`, `parallel.sh`, and `license.txt` in the working/output directory. Next, I run
 ```bash
 ./parallel.sh
 ```
@@ -214,6 +216,7 @@ occipital lobes. For example
 
 ```
 # Data calculated using pipeline.sh with sha256 has dabdbd33522f7789e9dc274afc0a7b9bacc8c02b890a396b32dc171dd0d5aaf0  /scif/apps/charge/scripts/pipeline.sh
+# Version: 1.0.0
 # Input directory: /mnt/indir
 # T1 filename: sub1_t1w.nii
 # DTI filename: sub1_dti.nii
@@ -257,7 +260,7 @@ mask separately (i.e. the complex atlas described below).
 ## QC pages
 
 If the `-q` flag is used, a QC page is generated for each subject.
-This is located at `QC/index.html`.
+This is located at `QC/index.html` in the subject's output directory.
 
 QC pages should be used to verify that the pipeline ran successfully for each subject.
 Some things to look out for:
@@ -268,7 +271,7 @@ Some things to look out for:
 
 # Combining data from all the subjects
 
-Assuming your output all your output directories are in a commond
+Assuming your output directories are in a commond
  directory and these directories have the same names as the subjects,
  e.g.:
 ```
@@ -312,7 +315,7 @@ MNI reference space, and need to be transformed to native (T1) space
 for each subject. This is done with:
 1. Linear registration (FLIRT) of non-uniformity corrected brain image (BET output) with MNI brain image
 2. Non-linear registration (FNIRT) of T1 image with MNI image
-3. Apply non-linear transformation to t1 brain image for QC
+3. Apply non-linear transformation to T1 brain image for QC
 4. Invert the non-linear transformation
 5. Apply inverse transformation to lobe map and brain mask
 
@@ -357,10 +360,12 @@ The complex atlas contains 28 labels
 
 ## Process T1 data
 
-The T1 data is non-uniformity corrected using the N3 algorithm (TODO cite) included with freesurfer
-and then cropped using the parameters found from the brain image.
+The T1 data is non-uniformity corrected using the N3 algorithm included with FreeSurfer
+and then cropped using the parameters found previously.
 
 ## Process DTI data
+
+The DTI processing is based on the begining of the [PSMD](http://www.psmd-marker.com/index.html) pipeline
 
 DTI data is processed using FSL in the following steps
 1. Search bval file to find the index of the structural scan in the DTI data set (i.e., where bval = 0)
@@ -382,5 +387,16 @@ normalizing the T1 intensity values).
 ![Pipeline flowchart](doc/pipeline.svg)
 
 # References
-N3
-parallel
+| N3 algorithm | J. G. Sled, A. P. Zijdenbos, and A. C. Evans, ``A non-parametric method for automatic correction of intensity non-uniformity in MRI data, IEEE Transactions on Medical Imaging, vol. 17, pp. 87-97, February 1998. |
+| parallel     | O. Tange (2011): GNU Parallel - The Command-Line Power Tool, ;login: The USENIX Magazine, February 2011:42-47. |
+| FSL (ref 1)    | M.W. Woolrich, S. Jbabdi, B. Patenaude, M. Chappell, S. Makni, T. Behrens, C. Beckmann, M. Jenkinson, S.M. Smith. Bayesian analysis of neuroimaging data in FSL. NeuroImage, 45:S173-86, 2009 |
+| FSL (ref 2)  | S.M. Smith, M. Jenkinson, M.W. Woolrich, C.F. Beckmann, T.E.J. Behrens, H. Johansen-Berg, P.R. Bannister, M. De Luca, I. Drobnjak, D.E. Flitney, R. Niazy, J. Saunders, J. Vickers, Y. Zhang, N. De Stefano, J.M. Brady, and P.M. Matthews. Advances in functional and structural MR image analysis and implementation as FSL. NeuroImage, 23(S1):208-19, 2004 |
+| FSL (ref 3)  | M. Jenkinson, C.F. Beckmann, T.E. Behrens, M.W. Woolrich, S.M. Smith. FSL. NeuroImage, 62:782-90, 2012 |
+| BET          | S.M. Smith. Fast robust automated brain extraction. Human Brain Mapping, 17(3):143-155, November 2002. |
+| BET (skull)  | M. Jenkinson, M. Pechaud, and S. Smith. BET2: MR-based estimation of brain, skull and scalp surfaces. In Eleventh Annual Meeting of the Organization for Human Brain Mapping, 2005. |
+| FAST         | Zhang, Y. and Brady, M. and Smith, S. Segmentation of brain MR images through a hidden Markov random field model and the expectation-maximization algorithm. IEEE Trans Med Imag, 20(1):45-57, 2001. |
+| FLIRT (ref 1) | M. Jenkinson and S.M. Smith. A global optimisation method for robust affine registration of brain images. Medical Image Analysis, 5(2):143-156, 2001.  |
+| FLIRT (ref 2) | M. Jenkinson, P.R. Bannister, J.M. Brady, and S.M. Smith. Improved optimisation for the robust and accurate linear registration and motion correction of brain images. NeuroImage, 17(2):825-841, 2002. | 
+| FNIRT | Andersson JLR, Jenkinson M, Smith S (2010) Non-linear registration, aka spatial normalisation. FMRIB technical report TR07JA2 |
+| FreeSurfer | http://surfer.nmr.mgh.harvard.edu/ (no overall paper) |
+| PSMD | E. Baykara et al., “A Novel Imaging Marker for Small Vessel Disease Based on Skeletonization of White Matter Tracts and Diffusion Histograms,” Annals of Neurology, vol. 80, no. 4, pp. 581–592, 2016. |
