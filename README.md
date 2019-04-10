@@ -26,7 +26,7 @@ you're using a managed cluster, there's a good chance singularity is
 supported. Once installed, the container may be acquired with
 
 ```bash
-singularity pull --name charge_container.simg shub://pndni/Charge_GM_WM_Properties_Pipeline.1.0.0
+singularity pull --name charge_container.simg shub://pndni/Charge_GM_WM_Properties_Pipeline.1.0.0-alpha6
 ```
 
 ## Manually
@@ -140,7 +140,7 @@ cd /project/charge/Charge_GM_WM_Properties_Pipeline_out
 
 Next, I download the singularity container
 ```bash
-singularity pull --name charge_container.simg shub://pndni/Charge_GM_WM_Properties_Pipeline:1.0.0
+singularity pull --name charge_container.simg shub://pndni/Charge_GM_WM_Properties_Pipeline:1.0.0-alpha6
 ```
 which gets saved to `charge_container.simg`
 
