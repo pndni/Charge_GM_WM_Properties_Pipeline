@@ -35,7 +35,7 @@ singularity run \
 --bind "$indir":/mnt/indir:ro \
 --bind "$outdirbase":/mnt/outdir \
 --app charge \
---containall \
+--cleanenv \
 charge_container.simg -q -f /mnt/outdir/license.txt \
 /mnt/indir \
 "$t1" \
