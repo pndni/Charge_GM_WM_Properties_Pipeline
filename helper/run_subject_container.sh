@@ -22,8 +22,8 @@ then
     outdirbase="${outdir%/*}"
     outdirlast="${outdir##*/}"
 else
-    outdirbase="$outdir"
-    outdirlast=""
+    outdirbase="."
+    outdirlast="$outdir"
 fi
 
 
