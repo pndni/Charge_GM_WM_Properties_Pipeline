@@ -149,12 +149,10 @@ t1fastdir=t1_fast_out
 t1fastout="$t1fastdir"/t1
 t1betcorc="${t1fastout}"_restore$ext
 t1segc="${t1fastout}"_seg$ext
-gmmaskc="${t1fastout}"_seg_${gm}$ext
-wmmaskc="${t1fastout}"_seg_${wm}$ext
-# gmpvec=${t1fastout}_pve_${gm}$ext
-# wmpvec=${t1fastout}_pve_${wm}$ext
-# gmmask2=${t1fastout}_seg_${gm}_pv$ext
-# wmmask2=${t1fastout}_seg_${wm}_pv$ext
+gmpvec=${t1fastout}_pve_${gm}$ext
+wmpvec=${t1fastout}_pve_${wm}$ext
+gmmask2=${t1fastout}_seg_${gm}_pv$ext
+wmmask2=${t1fastout}_seg_${wm}_pv$ext
 
 t1regdir=t1_reg_out
 s2raff="$t1regdir"/struct2mni_affine.mat # affine matrix from the T1 image to the MNI reference
@@ -201,6 +199,7 @@ fi
 t1bet_f=0.4  # parameter passed to FSL's  bet
 croppad1=40  # amount to pad image when cropping to skull estimate
 croppad2=10  # amount to pad image when cropping to T1
+t1tissuefrac=0.9  # fraction of voxel that must be a tissue type for that voxel to be included in the tissue mask
 
 # BET
 #    Extract the brain from the image
@@ -333,10 +332,14 @@ mkdir "$statsdir"
 
 
 
+# create tissue masks by threshold partial volume images
+fslmaths $gmpvec -thr $t1tissuefrac -bin $gmmask2
+fslmaths $wmpvec -thr $t1tissuefrac -bin $wmmask2
+
 # Construct combined atlas by offsetting wm values by 14
 
-fslmaths "$atlas_native" -mas "$gmmaskc" "$gm_atlas" -odt int
-fslmaths "$atlas_native" -add 14 -mas "$wmmaskc" -mas "$atlas_native" "$wm_atlas" -odt int
+fslmaths "$atlas_native" -mas "$gmmask2" "$gm_atlas" -odt int
+fslmaths "$atlas_native" -add 14 -mas "$wmmask2" -mas "$atlas_native" "$wm_atlas" -odt int
 fslmaths "$gm_atlas" -add "$wm_atlas" "$combined_atlas" -odt int
 
 # Construct atlases combining front, parietal, occipital, and temporal lobes from both hemispheres
