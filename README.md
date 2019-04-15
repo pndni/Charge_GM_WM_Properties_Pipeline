@@ -29,6 +29,8 @@ supported. Once installed, the container may be acquired with
 singularity pull --name charge_container.simg shub://pndni/Charge_GM_WM_Properties_Pipeline.1.0.0
 ```
 
+Please ensure that you agree to the terms in the [FSL license](https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense).
+
 ## Manually
 
 First, install the prequisits if they aren't already installed:
