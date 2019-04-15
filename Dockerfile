@@ -3,9 +3,7 @@ FROM centos:7.6.1810
 RUN yum install -y wget file bc tar gzip libquadmath which bzip2 libgomp tcsh perl less vim zlib zlib-devel hostname
 RUN yum groupinstall -y "Development Tools"
 
-##############
-# freesurfer #
-##############
+# FREESURFER
 RUN wget --no-verbose --output-document=/root/freesurfer.tar.gz https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/6.0.1/freesurfer-Linux-centos6_x86_64-stable-pub-v6.0.1.tar.gz
 RUN tar -C /opt -xzvf /root/freesurfer.tar.gz
 RUN rm /root/freesurfer.tar.gz
@@ -13,9 +11,7 @@ RUN rm /root/freesurfer.tar.gz
 ENV NO_FSFAST 1
 ENV FREESURFER_HOME /opt/freesurfer
 
-#######
-# fsl #
-#######
+# FSL
 RUN wget --output-document=/root/fslinstaller.py https://fsl.fmrib.ox.ac.uk/fsldownloads/fslinstaller.py 
 RUN python /root/fslinstaller.py -p -V 6.0.1 -d /opt/fsl
 RUN rm /root/fslinstaller.py
@@ -23,17 +19,15 @@ RUN rm /root/fslinstaller.py
 ENV FSLDIR /opt/fsl
 ENV PATH $FSLDIR/bin:$PATH
 
-###################
-# Charge pipeline #
-###################
+# CHARGE PIPELINE
 RUN mkdir /opt/charge
 COPY scripts /opt/charge/scripts
 COPY utils /opt/charge/utils
 COPY models /opt/charge/models
 COPY QC /opt/charge/QC
 
+# ENVIRONMENT SETUP
 ENV CHARGEDIR /opt/charge
-
 
 ENV FSLOUTPUTTYPE NIFTI_GZ
 ENV FSLMULTIFILEQUIT TRUE
@@ -62,7 +56,14 @@ ENV PATH $FREESURFER_HOME/tktools:$PATH
 ENV PATH $FREESURFER_HOME/bin:$FSFAST_HOME/bin:$PATH
 ENV FIX_VERTEX_AREA ""
 
+RUN mkdir -p /mnt/outdir
+RUN mkdir -p /mnt/indir
+
 LABEL Maintainer="Steven Tilley"
 LABEL Version=dev
+LABEL FSL_License=https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+LABEL FSL_Version=6.0.1
+LABEL FreeSurfer_License=https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/Licence
+LABEL FreeSurfer_Version=6.0.1
 
 ENTRYPOINT ["/opt/charge/scripts/pipeline.sh"]
