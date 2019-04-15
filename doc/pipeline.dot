@@ -16,6 +16,7 @@ node[shape=rect, color=blue, fontcolor=blue];
 "T1 cropped brain image" 
 "T1 cropped image"
 "T1 skull image"
+"GM/WM partial volume images"
 "GM/WM maps"
 "T1 bet-nonuniformity-corrected image"
 "Crop parameters"
@@ -48,7 +49,8 @@ subgraph clustermaps{
 {"T1 image", "Crop parameters"} -> "T1 crop" -> "T1 cropped image"
 {"T1 brain image", "Crop parameters"} -> "T1 crop brain" -> "T1 cropped brain image"
 "T1 cropped brain image" -> "Tissue classification (FAST)"
-"Tissue classification (FAST)" -> {"GM/WM maps", "T1 bet-nonuniformity-corrected image"}
+"Tissue classification (FAST)" -> {"GM/WM partial volume images", "T1 bet-nonuniformity-corrected image"}
+{"GM/WM partial volume images" -> "Threshold at 0.9" -> "GM/WM maps"}
 {"T1 bet-nonuniformity-corrected image", "MNI reference brain"} -> "Linear registration (FLIRT)" -> "T1 to Reference linear transformation"
 {"T1 to Reference linear transformation", "T1 cropped image", "MNI reference"} -> "T1 to Reference non-linear registration (FNIRT)" -> "T1 to Reference non-linear transformation"
 {"T1 to Reference non-linear transformation" -> Invwarp -> "Reference to T1 non-linear transformation"}

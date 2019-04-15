@@ -310,7 +310,8 @@ The tissue type (CSF, grey matter, or white matter) is calculated
 using FSL tools and the T1 image in the following steps.
 
 1. Extract brain (BET) and crop image to reduce image size
-2. Classify tissues using FAST
+2. Classify tissues using FAST (voxels are considered WM or GM if FAST estimates that voxel as being 90% that tissue. i.e., the partial volume
+outputs are thresholded at 0.9)
 
 A lobe map and brain mask are provided with the pipeline. These are in
 MNI reference space, and need to be transformed to native (T1) space
