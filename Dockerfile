@@ -4,9 +4,7 @@ RUN yum install -y wget file bc tar gzip libquadmath which bzip2 libgomp tcsh pe
 RUN yum groupinstall -y "Development Tools"
 
 # FREESURFER
-RUN wget --no-verbose --output-document=/root/freesurfer.tar.gz https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/6.0.1/freesurfer-Linux-centos6_x86_64-stable-pub-v6.0.1.tar.gz
-RUN tar -C /opt -xzvf /root/freesurfer.tar.gz
-RUN rm /root/freesurfer.tar.gz
+RUN wget --no-verbose --output-document=- https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/6.0.1/freesurfer-Linux-centos6_x86_64-stable-pub-v6.0.1.tar.gz | tar -C /opt -xzvf -
 
 ENV NO_FSFAST 1
 ENV FREESURFER_HOME /opt/freesurfer
