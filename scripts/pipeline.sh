@@ -500,114 +500,141 @@ printstats "$simple_atlas" "T1" "$nucorc" 2 >> "$statsfile_simple" || error "pri
 
 # Setup
 
-if [ -z "$rundti" ]
+if [ ! -z "$rundti" ]
 then
-    exit 0
+    
+    # Copy input files
+    
+    
+    \cp "$indir/$dti" ./
+    \cp "$indir/$bvec" ./
+    \cp "$indir/$bval" ./
+    
+    # Create variables
+    
+    dtibetdir=dti_bet_out
+    dtibetimage="$dtibetdir"/bet$ext
+    dtibetmask="$dtibetdir"/bet_mask$ext
+    
+    eddycordir=dti_eddy_out
+    eddycorimage="$eddycordir"/eddycor
+    
+    dtifitdir=dti_fit_out
+    dtifitbase="$dtifitdir"/dti
+    dtifa="${dtifitbase}"_FA$ext
+    dtimd="${dtifitbase}"_MD$ext
+    
+    dtiregdir=dti_reg_out
+    structforreg="$dtiregdir"/dti_struct_for_reg$ext
+    dti2t1="$dtiregdir"/dti2struct_affine.mat
+    struct_native="$dtiregdir"/dti_struct_native$ext
+    dtifa_native="$dtiregdir"/dti_FA_native$ext
+    dtimd_native="$dtiregdir"/dti_MD_native$ext
+    
+    # Eddy correction
+    
+    mkdir "$eddycordir"
+    
+    
+    # This registers everything to the reference frame using the correlation ratio
+    # cost function and a linear transformation (flirt). The structural image is found
+    # by looking for 0 in the bval file.
+    
+    
+    
+    refinds=( $(tr ' ' '\n' < "$bval" | awk 'NF > 0 && ($1 + 0) == 0 {print NR - 1}') ) || error "refinds calc"
+    if [ ${#refinds[@]} -ne 1 ]
+    then
+        error "dti scan must contain exactly one structural (reference) image"
+    fi
+    echo "Structural scan found at index $refinds of $dti"
+    logcmd eddycorrectlog eddy_correct "$dti" "$eddycorimage" $refinds
+    qcrun logs "Eddy correct" logs/eddycorrectlog "$qcoutdir"
+    
+    # BET 
+    
+    mkdir "$dtibetdir"
+    
+    
+    
+    # #+RESULTS:
+    
+    
+    logcmd dtibetlog bet "$eddycorimage" "$dtibetimage" -m -F
+    qcrun logs "DTI BET" logs/dtibetlog "$qcoutdir"
+    
+    # DTIFIT
+    
+    
+    mkdir "$dtifitdir"
+    
+    # I switched input from dtibetimage to eddycorimage, which
+    # I think is better and more like what psmd does.
+    logcmd dtifitlog dtifit --data="$eddycorimage" --out="$dtifitbase" --mask="$dtibetmask" --bvecs="$bvec" --bvals="$bval"
+    qcrun logs "DTI Fit" logs/dtifitlog "$qcoutdir"
+    qcrun static "DTI Fit: FA" "$dtifa" "$qcoutdir"
+    qcrun static "DTI Fit: MD" "$dtimd" "$qcoutdir"
+    
+    # Registration
+    
+    
+    mkdir "$dtiregdir"
+    
+    logcmd dtibetroilog fslroi "$dtibetimage" "$structforreg" $refinds 1
+    logcmd dtiflirtlog flirt -ref "$t1betcorc" -in "$structforreg" -omat "$dti2t1" -out "$struct_native"
+    qcrun fade "T1" "DTI struct reference in T1 coords" "$nucorc" "$struct_native" "$qcoutdir" --logprefix logs/dtiflirtlog
+    logcmd dtifatransformlog flirt -ref "$t1betcorc" -init "$dti2t1" -applyxfm -in "$dtifa" -out "$dtifa_native"
+    qcrun fade "T1" "FA in T1 coords" "$nucorc" "$dtifa_native" "$qcoutdir" --logprefix logs/dtifatransformlog
+    logcmd dtimdtransformlog flirt -ref "$t1betcorc" -init "$dti2t1" -applyxfm -in "$dtimd" -out "$dtimd_native"
+    qcrun fade "T1" "MD in T1 coords" "$nucorc" "$dtimd_native" "$qcoutdir" --logprefix logs/dtimdtransformlog
+    qcrun static "Brain mask over FA" "$dtifa_native" "$qcoutdir" --labelfile "$brainmask_native"
+    qcrun static "Brain mask over MD" "$dtimd_native" "$qcoutdir" --labelfile "$brainmask_native"
+    qcrun static "Lobe mask over FA" "$dtifa_native" "$qcoutdir" --labelfile "$atlas_native"
+    qcrun static "Lobe mask over MD" "$dtimd_native" "$qcoutdir" --labelfile "$atlas_native"
+    
+    # Data extraction
+    
+    
+    printstats "$combined_atlas" "FA" "$dtifa_native" 28 >> "$statsfile" || error "printstats"
+    printstats "$combined_atlas" "MD" "$dtimd_native" 28 >> "$statsfile" || error "printstats"
+    # printstats "pvatlas" $combined_atlas2 "FA" $dtifa_native 28 >> $statsfile || error "printstats"
+    # printstats "pvatlas" $combined_atlas2 "MD" $dtimd_native 28 >> $statsfile || error "printstats"
+    
+    
+    printstats "$simple_atlas" "FA" "$dtifa_native" 2 >> "$statsfile_simple" || error "printstats"
+    printstats "$simple_atlas" "MD" "$dtimd_native" 2 >> "$statsfile_simple" || error "printstats"
+    # printstats "pvatlas" $simple_atlas2 "FA" $dtifa_native 2 >> $statsfile_simple || error "printstats"
+    # printstats "pvatlas" $simple_atlas2 "MD" $dtimd_native 2 >> $statsfile_simple || error "printstats"
 fi
-
-# Copy input files
-
-
-\cp "$indir/$dti" ./
-\cp "$indir/$bvec" ./
-\cp "$indir/$bval" ./
-
-# Create variables
-
-dtibetdir=dti_bet_out
-dtibetimage="$dtibetdir"/bet$ext
-dtibetmask="$dtibetdir"/bet_mask$ext
-
-eddycordir=dti_eddy_out
-eddycorimage="$eddycordir"/eddycor
-
-dtifitdir=dti_fit_out
-dtifitbase="$dtifitdir"/dti
-dtifa="${dtifitbase}"_FA$ext
-dtimd="${dtifitbase}"_MD$ext
-
-dtiregdir=dti_reg_out
-structforreg="$dtiregdir"/dti_struct_for_reg$ext
-dti2t1="$dtiregdir"/dti2struct_affine.mat
-struct_native="$dtiregdir"/dti_struct_native$ext
-dtifa_native="$dtiregdir"/dti_FA_native$ext
-dtimd_native="$dtiregdir"/dti_MD_native$ext
-
-# Eddy correction
-
-mkdir "$eddycordir"
-
-
-# This registers everything to the reference frame using the correlation ratio
-# cost function and a linear transformation (flirt). The structural image is found
-# by looking for 0 in the bval file.
-
-
-
-refinds=( $(tr ' ' '\n' < "$bval" | awk 'NF > 0 && ($1 + 0) == 0 {print NR - 1}') ) || error "refinds calc"
-if [ ${#refinds[@]} -ne 1 ]
-then
-    error "dti scan must contain exactly one structural (reference) image"
-fi
-echo "Structural scan found at index $refinds of $dti"
-logcmd eddycorrectlog eddy_correct "$dti" "$eddycorimage" $refinds
-qcrun logs "Eddy correct" logs/eddycorrectlog "$qcoutdir"
-
-# BET 
-
-mkdir "$dtibetdir"
-
-
-
-# #+RESULTS:
-
-
-logcmd dtibetlog bet "$eddycorimage" "$dtibetimage" -m -F
-qcrun logs "DTI BET" logs/dtibetlog "$qcoutdir"
-
-# DTIFIT
-
-
-mkdir "$dtifitdir"
-
-# I switched input from dtibetimage to eddycorimage, which
-# I think is better and more like what psmd does.
-logcmd dtifitlog dtifit --data="$eddycorimage" --out="$dtifitbase" --mask="$dtibetmask" --bvecs="$bvec" --bvals="$bval"
-qcrun logs "DTI Fit" logs/dtifitlog "$qcoutdir"
-qcrun static "DTI Fit: FA" "$dtifa" "$qcoutdir"
-qcrun static "DTI Fit: MD" "$dtimd" "$qcoutdir"
-
-# Registration
-
-
-mkdir "$dtiregdir"
-
-logcmd dtibetroilog fslroi "$dtibetimage" "$structforreg" $refinds 1
-logcmd dtiflirtlog flirt -ref "$t1betcorc" -in "$structforreg" -omat "$dti2t1" -out "$struct_native"
-qcrun fade "T1" "DTI struct reference in T1 coords" "$nucorc" "$struct_native" "$qcoutdir" --logprefix logs/dtiflirtlog
-logcmd dtifatransformlog flirt -ref "$t1betcorc" -init "$dti2t1" -applyxfm -in "$dtifa" -out "$dtifa_native"
-qcrun fade "T1" "FA in T1 coords" "$nucorc" "$dtifa_native" "$qcoutdir" --logprefix logs/dtifatransformlog
-logcmd dtimdtransformlog flirt -ref "$t1betcorc" -init "$dti2t1" -applyxfm -in "$dtimd" -out "$dtimd_native"
-qcrun fade "T1" "MD in T1 coords" "$nucorc" "$dtimd_native" "$qcoutdir" --logprefix logs/dtimdtransformlog
-qcrun static "Brain mask over FA" "$dtifa_native" "$qcoutdir" --labelfile "$brainmask_native"
-qcrun static "Brain mask over MD" "$dtimd_native" "$qcoutdir" --labelfile "$brainmask_native"
-qcrun static "Lobe mask over FA" "$dtifa_native" "$qcoutdir" --labelfile "$atlas_native"
-qcrun static "Lobe mask over MD" "$dtimd_native" "$qcoutdir" --labelfile "$atlas_native"
-
-# Data extraction
-
-
-printstats "$combined_atlas" "FA" "$dtifa_native" 28 >> "$statsfile" || error "printstats"
-printstats "$combined_atlas" "MD" "$dtimd_native" 28 >> "$statsfile" || error "printstats"
-# printstats "pvatlas" $combined_atlas2 "FA" $dtifa_native 28 >> $statsfile || error "printstats"
-# printstats "pvatlas" $combined_atlas2 "MD" $dtimd_native 28 >> $statsfile || error "printstats"
-
-
-printstats "$simple_atlas" "FA" "$dtifa_native" 2 >> "$statsfile_simple" || error "printstats"
-printstats "$simple_atlas" "MD" "$dtimd_native" 2 >> "$statsfile_simple" || error "printstats"
-# printstats "pvatlas" $simple_atlas2 "FA" $dtifa_native 2 >> $statsfile_simple || error "printstats"
-# printstats "pvatlas" $simple_atlas2 "MD" $dtimd_native 2 >> $statsfile_simple || error "printstats"
 
 # Cleanup
+ERROR=0
+WARNING=0
+if cat logs/*stderr.txt | grep -v -e '^Saving result to .* (type = MINC )\s*\[ ok \]$' > /dev/null
+then
+    # something was found in stderr
+    echo "2: ERROR. stderr output indicates error" > status.txt
+    ERROR=1
+else
+    echo "0: stderr output does not indicate error" > status.txt
+fi
+if grep -e '^Warning, Jacobian not within prescribed range' logs/fnirtlog_stdout.txt > /dev/null
+then
+    WARNING=1
+    
+    if ! grep -e '^Warning, Jacobian not within prescribed range' logs/fnirtlog_stdout.txt | awk '($(16) < -0.5) {exit 1}'
+    then
+	ERROR=1
+	echo "2: ERROR. logs/fnirtlog_stdout.txt indicates jacobian determinent is well outside prescribed range. Check registrations" >> status.txt
+    else
+	echo "1: WARNING. logs/fnirtlog_stdout.txt indicates a warning with Jacobians. Check registrations" >> status.txt
+    fi
+else
+    echo "0: logs/fnirtlog_stdout.txt indicates no warnings or errors" >> status.txt
+fi
+echo $ERROR > errorflag
+echo $WARNING > warningflag
 
 popd > /dev/null
+
+exit $ERROR

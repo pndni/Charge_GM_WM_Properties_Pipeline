@@ -2,6 +2,8 @@
 # Combine data script
 #    reads stdin as a list of subjects and then combines the stats
 #    from $subject/stats_out/$1.txt into $1_combined.txt
+#    also adds an errorflag and a warningflag column with the contents
+#    of the errorflag/warningflag files
 
 
 set -e
@@ -110,7 +112,9 @@ combine_flattened (){
 tmpdir=$(mktemp -d)
 while read subject
 do
-     sed -n '/^[^#]/p' < $subject/stats_out/$1.txt | flatten > $tmpdir/${subject}_${1}_flat.txt 
+     echo -e "errorflag\twarningflag" > $tmpdir/${subject}_$1_flags.txt
+     paste $subject/errorflag $subject/warningflag >> $tmpdir/${subject}_$1_flags.txt
+     sed -n '/^[^#]/p' < $subject/stats_out/$1.txt | flatten | paste - $tmpdir/${subject}_$1_flags.txt > $tmpdir/${subject}_${1}_flat.txt 
      echo $subject $tmpdir/${subject}_${1}_flat.txt
 done | combine_flattened > $1_combined.txt
 rm -r $tmpdir
