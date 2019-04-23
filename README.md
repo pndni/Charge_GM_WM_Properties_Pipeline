@@ -45,6 +45,8 @@ mkdir /project/charge/Charge_GM_WM_Properties_Pipeline_out
 cd /project/charge/Charge_GM_WM_Properties_Pipeline_out
 ```
 
+NB. The subject name cannot contain spaces.
+
 ## Workflow 1 (prefered)
 
 1. If singularity 2.5.2 or greater is not installed on your system then [install singularity](#Installing-Singularity)
