@@ -131,7 +131,7 @@ NB. The subject name cannot contain spaces.
    ls /project/charge/subjects | grep -e '^sub' > subject_list
    ```
 7. Copy the FreeSurfer license file to `/project/charge/Charge_GM_WM_Properties_Pipeline_out/license.txt`
-8. If you are using a computing cluster, go to 8.1, otherwise, go to 8.2
+8. If you are using a computing cluster, go to 8.ii, otherwise, go to 8.i
     1. Copy parallel.sh to the working directory
        ```bash
        cp Charge_GM_WM_Properties_Pipeline/helper/parallel.sh ./
@@ -230,7 +230,7 @@ NB. The subject name cannot contain spaces.
    ```bash
    ls /project/charge/subjects | grep -e '^sub' > subject_list
    ```
-8. If you are using a computing cluster, go to 8.1, otherwise, go to 8.2
+7. If you are using a computing cluster, go to 7.ii, otherwise, go to 7.i
     1. Copy parallel.sh to the working directory
        ```bash
        cp Charge_GM_WM_Properties_Pipeline/helper/parallel.sh ./
