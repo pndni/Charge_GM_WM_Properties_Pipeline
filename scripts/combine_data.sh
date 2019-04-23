@@ -112,9 +112,12 @@ combine_flattened (){
 tmpdir=$(mktemp -d)
 while read subject
 do
-     echo -e "errorflag\twarningflag" > $tmpdir/${subject}_${1}_flags.txt
-     paste $subject/errorflag $subject/warningflag >> $tmpdir/${subject}_${1}_flags.txt
-     sed -n '/^[^#]/p' < $subject/stats_out/${1}.txt | flatten | paste - $tmpdir/${subject}_${1}_flags.txt > $tmpdir/${subject}_${1}_flat.txt 
-     echo $subject $tmpdir/${subject}_${1}_flat.txt
+     if [ -e $subject/stats_out/${1}.txt ]
+     then
+         echo -e "errorflag\twarningflag" > $tmpdir/${subject}_${1}_flags.txt
+         paste $subject/errorflag $subject/warningflag >> $tmpdir/${subject}_${1}_flags.txt
+         sed -n '/^[^#]/p' < $subject/stats_out/${1}.txt | flatten | paste - $tmpdir/${subject}_${1}_flags.txt > $tmpdir/${subject}_${1}_flat.txt 
+         echo $subject $tmpdir/${subject}_${1}_flat.txt
+     fi
 done | combine_flattened > $1_combined.txt
 rm -r $tmpdir
