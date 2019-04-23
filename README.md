@@ -71,25 +71,40 @@ cd /project/charge/Charge_GM_WM_Properties_Pipeline_out
    set -e
    set -u
    
-   subject=$1
+   subject="$1"
    
    indir=/project/charge/subjects/$subject
    outdir=/project/charge/Charge_GM_WM_Properties_Pipeline_out/$subject
+   logdir=/project/charge/Charge_GM_WM_Properties_Pipeline_out/logs
    
-   t1=${subject}_t1w.nii
-   dti=${subject}_dti.nii
-   bvec=${subject}_dti.bvec
-   bval=${subject}_dti.bval
+   t1="$subject"_t1w.nii
+   dti="$subject"_dti.nii
+   bvec="$subject".bvec
+   bval="$subject".bval
+
+   if [[ "$outdir" =~ .*/.* ]]
+      then
+          outdirbase="${outdir%/*}"
+          outdirlast="${outdir##*/}"
+   else
+          outdirbase="."
+          outdirlast="$outdir"
+   fi
    
-   outdirbase=${outdir%/*}
-   outdirlast=${outdir##*/}
-   
-   /opt/singularity/bin/singularity run \
-   --bind $indir:/mnt/indir:ro \
-   --bind ${outdirbase}:/mnt/outdir \
+   singularity run \
+   --bind "$indir":/mnt/indir:ro \
+   --bind "$outdirbase":/mnt/outdir \
    --app charge \
-   --containall \
-   charge_container.sh -q -f /mnt/outdir/license.txt /mnt/indir $t1 /mnt/outdir/$outdirlast $dti $bvec $bval
+   --cleanenv \
+   charge_container.simg -q -f /mnt/outdir/license.txt \
+   /mnt/indir \
+   "$t1" \
+   /mnt/outdir/"$outdirlast" \
+   "$dti" \
+   "$bvec" \
+   "$bval" \
+   > "$logdir"/"$subject"_stdout.log \
+   2> "$logdir"/"$subject"_stderr.log
    ```
    If your file names are less predictable (e.g. `${subject}_${date}_t1w.nii`),
    [findfile.sh](helper/findfile.sh) may be used to search for a file with
@@ -180,13 +195,16 @@ cd /project/charge/Charge_GM_WM_Properties_Pipeline_out
    
    indir=/project/charge/subjects/$subject
    outdir=/project/charge/Charge_GM_WM_Properties_Pipeline_out/$subject
+   logdir=/project/charge/Charge_GM_WM_Properties_Pipeline_out/logs
    
-   t1=${subject}_t1w.nii
-   dti=${subject}_dti.nii
-   bvec=${subject}.bvec
-   bval=${subject}.bval
+   t1="$subject"_t1w.nii
+   dti="$subject"_dti.nii
+   bvec="$subject".bvec
+   bval="$subject".bval
    
-   "$CHARGEDIR"/scripts/pipeline.sh -q "$indir" "$t1" "$outdir" "$dti" "$bvec" "$bval"
+   "$CHARGEDIR"/scripts/pipeline.sh -q "$indir" "$t1" "$outdir" "$dti" "$bvec" "$bval" \
+   > "$logdir"/"$subject"_stdout.log \
+   2> "$logdir"/"$subject"_stderr.log
    ```
    If your file names are less predictable (e.g. `${subject}_${date}_t1w.nii`),
    [findfile.sh](helper/findfile.sh) may be used to search for a file with
@@ -235,6 +253,28 @@ cd /project/charge/Charge_GM_WM_Properties_Pipeline_out
        ```bash
        sbatch slurm.sh
        ```
+       
+# Installing Singularity
+
+If singularity is not pre-installed on your system, it may be installed following [these instructions](https://www.sylabs.io/guides/2.5/user-guide/quick_start.html#quick-installation-steps)
+with the version modified:
+```bash
+git clone https://github.com/sylabs/singularity.git
+
+cd singularity
+
+git fetch --all
+
+git checkout 2.5.2
+
+./autogen.sh
+
+./configure --prefix=/usr/local
+
+make
+
+sudo make install
+```
 
 # Advanced Usage
 
