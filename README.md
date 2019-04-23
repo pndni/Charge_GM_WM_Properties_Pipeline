@@ -44,6 +44,10 @@ Create an output folder alongside the subjects folder and change to that directo
 mkdir /project/charge/Charge_GM_WM_Properties_Pipeline_out
 cd /project/charge/Charge_GM_WM_Properties_Pipeline_out
 ```
+Create a folder for log files
+```bash
+mkdir logs
+```
 
 NB. The subject name cannot contain spaces.
 

@@ -3,6 +3,9 @@
 set -e
 set -u
 
+# TODO if running on a cluster, you may need to load singularity here. For example
+# module load singularity/2.5.2
+
 subject="$1"
 
 indir=  # TODO: set the input directory (e.g. /projects/charge/$subject)
