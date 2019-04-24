@@ -427,7 +427,7 @@ Some things to look out for:
 
 # Combining data from all the subjects
 
-Assuming your output directories are in a commond
+Assuming your output directories are in a common
  directory and these directories have the same names as the subjects,
  e.g.:
 ```
@@ -439,12 +439,17 @@ Assuming your output directories are in a commond
 │           └── sub3
 ```
 Then the script `combine_data.sh` may be used to create a tsv file
-where each row corresponds to one subject. To combine the `stats.txt`
-files
+where each row corresponds to one subject. Assuming you're still in the
+output directory, copy the `combine_data.sh` script
+```bash
+cp Charge_GM_WM_Properties_Pipeline/scripts/combine_data.sh ./
+```
+To combine the `stats.txt`
+files, run
 ```bash
 ./combine_data.sh stats < subject_list > stats_combined.txt
 ```
-and to combine the `stats_simple` files
+and to combine the `stats_simple` files, run
 ```bash
 ./combine_data.sh stats_simple < subject_list > stats_simple_combined.txt
 ```
