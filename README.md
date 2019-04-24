@@ -322,15 +322,15 @@ mask separately (i.e. the complex atlas described below).
 ## errorflag, warningflag, and status.txt
 
 ### warningflag
-    The `fnirt` stdout is searched for a specific warning regarding the invertibility of the registration.
-    If the warning is found, the contents of the `warningflag` file is set to 1, otherwise it is set to 0.
-    If the warning is found and any of the reported Jacobian determinants are < -0.5, the `errorflag` is also set (see below).
-    See [here](https://www.jiscmail.ac.uk/cgi-bin/webadmin?A2=fsl;f2771bce.1511) for more details.
+The `fnirt` stdout is searched for a specific warning regarding the invertibility of the registration.
+If the warning is found, the contents of the `warningflag` file is set to 1, otherwise it is set to 0.
+If the warning is found and any of the reported Jacobian determinants are < -0.5, the `errorflag` is also set (see below).
+See [here](https://www.jiscmail.ac.uk/cgi-bin/webadmin?A2=fsl;f2771bce.1511) for more details.
 
 ### errorflag
-    The stderr outputs for many of the commands are checked for errors. If anything suspicious is found,
-    the contents of the `errorflag` file is set to 1, otherwise it is set to 0. `errorflag` is also set to 1
-    if `fnirt` stdout reports results.
+The stderr outputs for many of the commands are checked for errors. If anything suspicious is found,
+the contents of the `errorflag` file is set to 1, otherwise it is set to 0. `errorflag` is also set to 1
+if `fnirt` stdout reports results.
     
 ### status.txt
     `status.txt` is a more human-readable report of the errors/warnings
