@@ -264,6 +264,89 @@ NB. The subject name cannot contain spaces.
        sbatch slurm.sh
        ```
 
+# Outputs
+
+## Stats files
+
+The final outputs are `stats.txt` and `stats_simple.txt` for each
+subject. Each of these is in the `stats_out` subdirectory of each
+subject's output folder. `stats_simple.txt` contains statistics (e.g.,
+mean, standard deviation) for T1 intensity, FA, and MD images for grey
+matter, white matter, and the brain mask. Grey matter and white matter
+calculations are limited to the frontal, parietal, temporal, and
+occipital lobes. For example
+
+```
+# Data calculated using pipeline.sh with sha256 has dabdbd33522f7789e9dc274afc0a7b9bacc8c02b890a396b32dc171dd0d5aaf0  /scif/apps/charge/scripts/pipeline.sh
+# Version: 1.0.0
+# Input directory: /mnt/indir
+# T1 filename: sub1_t1w.nii
+# DTI filename: sub1_dti.nii
+# bvec: sub1_dti.bvec
+# bval: sub1_dti.bval
+# Onput directory: /mnt/outdir/sub1
+# Thu Apr  4 11:26:26 EDT 2019
+    gm  wm  Brain
+T1_mean 132.543153  192.408432  147.460649
+T1_median   132.0   194.0   148.0
+T1_std  18.277784   14.349024   43.706443
+T1_min  83.000000   146.000000  0.000000
+T1_max  184.000000  248.000000  255.000000
+T1_nvoxels  1904390 1539466 4831888
+T1_volume   476097.500000   384866.500000   1207972.000000
+T1_skew 0.08830975868781726 -0.20740648242728188    -0.4995048250367561
+T1_kurtosis -0.8085754376168155 -0.47384199662105786    -0.1787508983708661
+FA_mean 0.160421    0.337839    0.232258
+FA_median   0.1363086923956871  0.32776249945163727 0.1890806183218956
+FA_std  0.092652    0.153809    0.149830
+FA_min  0.016808    0.016798    0.012751
+FA_max  1.172887    1.028570    1.172887
+FA_nvoxels  1904390 1539466 4831888
+FA_volume   476097.500000   384866.500000   1207972.000000
+FA_skew 1.8720239661108977  0.512975937641004   1.1702564747724462
+FA_kurtosis 5.55129321688476    0.12349222847906116 1.1426128357323
+MD_mean 0.000944    0.000782    0.000909
+MD_median   0.0008798134222161025   0.0007501131622120738   0.0008163018792401999
+MD_std  0.000265    0.000148    0.000307
+MD_min  -0.000988   -0.000458   -0.001003
+MD_max  0.003560    0.003184    0.003745
+MD_nvoxels  1904390 1539466 4831888
+MD_volume   476097.500000   384866.500000   1207972.000000
+MD_skew 1.5909165225398094  2.966903477171533   2.159555195688378
+MD_kurtosis 4.7861540352992975  15.551729763640417  7.230834464420985
+```
+
+`stats.txt` is similar, but contains results for each part of the lobe
+mask separately (i.e. the complex atlas described below).
+
+## errorflag, warningflag, and status.txt
+
+### warningflag
+    The `fnirt` stdout is searched for a specific warning regarding the invertibility of the registration.
+    If the warning is found, the contents of the `warningflag` file is set to 1, otherwise it is set to 0.
+    If the warning is found and any of the reported Jacobian determinants are < -0.5, the `errorflag` is also set (see below).
+    See [here](https://www.jiscmail.ac.uk/cgi-bin/webadmin?A2=fsl;f2771bce.1511) for more details.
+
+### errorflag
+    The stderr outputs for many of the commands are checked for errors. If anything suspicious is found,
+    the contents of the `errorflag` file is set to 1, otherwise it is set to 0. `errorflag` is also set to 1
+    if `fnirt` stdout reports results.
+    
+### status.txt
+    `status.txt` is a more human-readable report of the errors/warnings
+
+## QC pages
+
+If the `-q` flag is used, a QC page is generated for each subject.
+This is located at `QC/index.html` in the subject's output directory.
+
+QC pages should be used to verify that the pipeline ran successfully for each subject.
+Some things to look out for:
+
+1. Ensure that the skull is not cropped in the initial cropping steps
+2. Check the registration outputs
+3. Check for warnings or errors in the log files on the QC page
+
 # Combining data from all the subjects
 
 Assuming your output directories are in a common
@@ -370,89 +453,6 @@ An example [file](helper/slurm.sh) is provided for batch processing on
 a compute cluster using Slurm. The example provided is for Compute
 Canada's Niagara cluster. See comments in the file for how to adapt to
 your site.
-
-# Outputs
-
-## Stats files
-
-The final outputs are `stats.txt` and `stats_simple.txt` for each
-subject. Each of these is in the `stats_out` subdirectory of each
-subject's output folder. `stats_simple.txt` contains statistics (e.g.,
-mean, standard deviation) for T1 intensity, FA, and MD images for grey
-matter, white matter, and the brain mask. Grey matter and white matter
-calculations are limited to the frontal, parietal, temporal, and
-occipital lobes. For example
-
-```
-# Data calculated using pipeline.sh with sha256 has dabdbd33522f7789e9dc274afc0a7b9bacc8c02b890a396b32dc171dd0d5aaf0  /scif/apps/charge/scripts/pipeline.sh
-# Version: 1.0.0
-# Input directory: /mnt/indir
-# T1 filename: sub1_t1w.nii
-# DTI filename: sub1_dti.nii
-# bvec: sub1_dti.bvec
-# bval: sub1_dti.bval
-# Onput directory: /mnt/outdir/sub1
-# Thu Apr  4 11:26:26 EDT 2019
-    gm  wm  Brain
-T1_mean 132.543153  192.408432  147.460649
-T1_median   132.0   194.0   148.0
-T1_std  18.277784   14.349024   43.706443
-T1_min  83.000000   146.000000  0.000000
-T1_max  184.000000  248.000000  255.000000
-T1_nvoxels  1904390 1539466 4831888
-T1_volume   476097.500000   384866.500000   1207972.000000
-T1_skew 0.08830975868781726 -0.20740648242728188    -0.4995048250367561
-T1_kurtosis -0.8085754376168155 -0.47384199662105786    -0.1787508983708661
-FA_mean 0.160421    0.337839    0.232258
-FA_median   0.1363086923956871  0.32776249945163727 0.1890806183218956
-FA_std  0.092652    0.153809    0.149830
-FA_min  0.016808    0.016798    0.012751
-FA_max  1.172887    1.028570    1.172887
-FA_nvoxels  1904390 1539466 4831888
-FA_volume   476097.500000   384866.500000   1207972.000000
-FA_skew 1.8720239661108977  0.512975937641004   1.1702564747724462
-FA_kurtosis 5.55129321688476    0.12349222847906116 1.1426128357323
-MD_mean 0.000944    0.000782    0.000909
-MD_median   0.0008798134222161025   0.0007501131622120738   0.0008163018792401999
-MD_std  0.000265    0.000148    0.000307
-MD_min  -0.000988   -0.000458   -0.001003
-MD_max  0.003560    0.003184    0.003745
-MD_nvoxels  1904390 1539466 4831888
-MD_volume   476097.500000   384866.500000   1207972.000000
-MD_skew 1.5909165225398094  2.966903477171533   2.159555195688378
-MD_kurtosis 4.7861540352992975  15.551729763640417  7.230834464420985
-```
-
-`stats.txt` is similar, but contains results for each part of the lobe
-mask separately (i.e. the complex atlas described below).
-
-## errorflag, warningflag, and status.txt
-
-### warningflag
-    The `fnirt` stdout is searched for a specific warning regarding the invertibility of the registration.
-    If the warning is found, the contents of the `warningflag` file is set to 1, otherwise it is set to 0.
-    If the warning is found and any of the reported Jacobian determinants are < -0.5, the `errorflag` is also set (see below).
-    See [here](https://www.jiscmail.ac.uk/cgi-bin/webadmin?A2=fsl;f2771bce.1511) for more details.
-
-### errorflag
-    The stderr outputs for many of the commands are checked for errors. If anything suspicious is found,
-    the contents of the `errorflag` file is set to 1, otherwise it is set to 0. `errorflag` is also set to 1
-    if `fnirt` stdout reports results.
-    
-### status.txt
-    `status.txt` is a more human-readable report of the errors/warnings
-
-## QC pages
-
-If the `-q` flag is used, a QC page is generated for each subject.
-This is located at `QC/index.html` in the subject's output directory.
-
-QC pages should be used to verify that the pipeline ran successfully for each subject.
-Some things to look out for:
-
-1. Ensure that the skull is not cropped in the initial cropping steps
-2. Check the registration outputs
-3. Check for warnings or errors in the log files on the QC page
 
 
 # Pipeline description
