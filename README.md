@@ -62,7 +62,7 @@ NB. The subject name cannot contain spaces.
    which gets saved to `charge_container.simg`
 4. Clone this repository to acquire the helper files.
    ```bash
-   git clone --branch 1.0.0-alpha8 git@github.com:pndni/Charge_GM_WM_Properties_Pipeline.git
+   git clone --branch 1.0.0-alpha8 https://github.com/pndni/Charge_GM_WM_Properties_Pipeline.git
    ```
 5. Copy `run_subject_container.sh` to the working directory, 
    ```bash
@@ -135,6 +135,10 @@ NB. The subject name cannot contain spaces.
    ls /project/charge/subjects | grep -e '^sub' > subject_list
    ```
 7. Copy the FreeSurfer license file to `/project/charge/Charge_GM_WM_Properties_Pipeline_out/license.txt`
+   If you already have a freesurfer license, you can copy it with
+   ```bash
+   cp $FREESURFER_HOME/license.txt /project/charge/Charge_GM_WM_Properties_Pipeline_out/license.txt
+   ```
 8. If you are using a computing cluster, go to 8.ii, otherwise, go to 8.i
     1. Copy parallel.sh to the working directory
        ```bash
@@ -167,7 +171,7 @@ NB. The subject name cannot contain spaces.
 2. Install [FreeSurfer](http://www.freesurfer.net/fswiki/DownloadAndInstall)
 3. Clone this repository.
    ```bash
-   git clone --branch 1.0.0-alpha8 git@github.com:pndni/Charge_GM_WM_Properties_Pipeline.git
+   git clone --branch 1.0.0-alpha8 https://github.com/pndni/Charge_GM_WM_Properties_Pipeline.git
    ```
 4. Set `CHARGEDIR` environment variable
    to the location of the repository (using a full path).
