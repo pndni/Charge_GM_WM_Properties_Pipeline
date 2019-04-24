@@ -86,6 +86,7 @@ combine_flattened (){
     local delim="\t"
     local rowname
     local fname
+    local lastrow
     while read rowname fname
     do
         if [ $(wc -l < "$fname") != 2 ]
@@ -105,7 +106,8 @@ combine_flattened (){
     	        exit 1
     	    fi
         fi
-        echo -e "$rowname\t"$(tail -n 1 "$fname")
+        lastrow=$(tail -n 1 "$fname")
+        echo -e "$rowname\t$lastrow"
     done
 }
 
