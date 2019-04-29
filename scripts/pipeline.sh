@@ -530,14 +530,24 @@ then
     struct_native="$dtiregdir"/dti_struct_native$ext
     dtifa_native="$dtiregdir"/dti_FA_native$ext
     dtimd_native="$dtiregdir"/dti_MD_native$ext
-    
-    # Eddy correction
-    
-    mkdir "$eddycordir"
-    
-    
-    # This registers everything to the reference frame using the correlation ratio
-    # cost function and a linear transformation (flirt). The structural image is found
+
+    antsbetdir=ants_bet_out
+    antsbetimage="$antsbetdir"/bet$ext
+    antsbetmask="$antsbetdir"/bet_mask$ext
+
+    antscordir=ants_cor_out
+    antscorimage="$antscordir"/eddycor$ext
+
+    antsdtifitdir=ants_dti_fit_out
+    antsdtifitbase="$antsdtifitdir"/dti
+    antsdtifa="${antsdtifitbase}"_FA$ext
+    antsdtimd="${antsdtifitbase}"_MD$ext
+
+    antsregdir=ants_reg_out
+    antsdtifa_native=$antsregdir/dti_FA_native$ext
+    antsdtimd_native=$antsregdir/dti_MD_native$ext
+
+    # The structural image is found
     # by looking for 0 in the bval file.
     
     
@@ -548,6 +558,37 @@ then
         error "dti scan must contain exactly one structural (reference) image"
     fi
     echo "Structural scan found at index $refinds of $dti"
+
+    mkdir $antsbetdir
+    logcmd antsbetlog bet "$dti" "$antsbetimage" -m -F
+
+    mkdir $antscordir
+    logcmd antssplitlog fslsplit $dti $antscordir/split -t
+    structimg=$(printf "%s/split%04d%s" $antscordir $refinds $ext)
+
+    frames=$(ls $antscordir)
+    for s in $frames
+    do
+        ind=${s:5:4}
+        if [ $ind -ne $refinds ]
+        then
+            logcmd antsreg${ind}log antsIntermodalityIntrasubject.sh -d 3 -r $structimg -i $antscordir/$s -t 3 -x ${antsbetmask} -o $(printf "%s/splitfix%s" $antscordir $ind)
+        else
+            cp $antscordir/$s $(printf "%s/splitfix%sanatomical%s" $antscordir $ind $ext)
+        fi
+    done
+    logcmd antsmergelog fslmerge -t $antscorimage $(ls $antscordir/splitfix*anatomical$ext)
+
+    mkdir $antsdtifitdir
+    logcmd antsdtifitlog dtifit --data="$antscorimage" --out="$antsdtifitbase" --mask="$antsbetmask" --bvecs="$bvec" --bvals="$bval"
+    
+    # Eddy correction
+    
+    mkdir "$eddycordir"
+    
+    
+    # This registers everything to the reference frame using the correlation ratio
+    # cost function and a linear transformation (flirt).
     logcmd eddycorrectlog eddy_correct "$dti" "$eddycorimage" $refinds
     qcrun logs "Eddy correct" logs/eddycorrectlog "$qcoutdir"
     
@@ -605,6 +646,19 @@ then
     printstats "$simple_atlas" "MD" "$dtimd_native" 2 >> "$statsfile_simple" || error "printstats"
     # printstats "pvatlas" $simple_atlas2 "FA" $dtifa_native 2 >> $statsfile_simple || error "printstats"
     # printstats "pvatlas" $simple_atlas2 "MD" $dtimd_native 2 >> $statsfile_simple || error "printstats"
+
+    mkdir $antsregdir
+    logcmd antsdtifatransformlog flirt -ref "$t1betcorc" -init "$dti2t1" -applyxfm -in "$antsdtifa" -out "$antsdtifa_native"
+    logcmd antsdtimdtransformlog flirt -ref "$t1betcorc" -init "$dti2t1" -applyxfm -in "$antsdtimd" -out "$antsdtimd_native"
+
+    printstats "$combined_atlas" "FAants" "$antsdtifa_native" 28 >> "$statsfile" || error "printstats"
+    printstats "$combined_atlas" "MDants" "$antsdtimd_native" 28 >> "$statsfile" || error "printstats"
+    # printstats "pvatlas" $combined_atlas2 "FA" $dtifa_native 28 >> $statsfile || error "printstats"
+    # printstats "pvatlas" $combined_atlas2 "MD" $dtimd_native 28 >> $statsfile || error "printstats"
+    
+    
+    printstats "$simple_atlas" "FAants" "$antsdtifa_native" 2 >> "$statsfile_simple" || error "printstats"
+    printstats "$simple_atlas" "MDants" "$antsdtimd_native" 2 >> "$statsfile_simple" || error "printstats"
 fi
 
 # Cleanup
