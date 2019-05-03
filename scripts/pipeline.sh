@@ -17,21 +17,31 @@ error() {
 
 selfhash=$(sha256sum $0)
 
+usage="Usage: pipeline.sh [-q] [-f freesurfer_license] [-p phase_encoding_direction] indir t1 outdir [dti bvec bval [acqp index]]"
 
 qc=0
-while getopts qf: name
+useeddy=0
+while getopts qf:p: name
 do
     case $name in
 	q) qc=1
 	   ;;
 	f) export FS_LICENSE="$OPTARG"
 	   ;;
-	?) >&2 echo "Usage: pipeline.sh [-q] [-f freesurfer_license] indir t1 outdir [dti bvec bval]"
+        p) phase_enc="$OPTARG"
+           useeddy=1
+           ;;
+	?) >&2 echo $usage
 	   exit 2
 	   ;;
     esac
 done
 shift $((OPTIND - 1))
+echo $#
+if [ $# -ne 3 ] && [ $# -ne 6 ] && [ $# -ne 8 ]
+then
+    error $usage
+fi
 indir="$1"
 shift
 t1="$1"
@@ -39,27 +49,43 @@ shift
 outdir="$1"
 shift
 rundti=
-if [ $# == 3 ]
+if [ $# -gt 0 ]
 then
     rundti=1
     dti="$1"
-    bvec="$2"
-    bval="$3"
-elif [ $# != 0 ]
-then
-    error "Usage: pipeline.sh [-q] [-f freesurfer_license] indir t1 outdir [dti bvec bval]"
+    shift
+    bvec="$1"
+    shift
+    bval="$1"
+    shift
+    if [ $# -eq 2 ]
+    then
+        if [ -n "$phase_enc" ]
+        then
+            error "either specify acqp and index or -p, not both"
+        fi
+        useeddy=1
+        acqp="$1"
+        index="$2"
+    elif [ $# -ne 0 ]
+    then
+        error $usage
+    fi
 fi
 
-if [ -d "$outdir" ]
-then
-    error "Output director already exists. Aborting"
-fi
-
-mkdir "$outdir"
-pushd "$outdir" > /dev/null
+# wrapper function that handles redirection
+logcmd(){
+    #https://stackoverflow.com/questions/692000/how-do-i-write-stderr-to-a-file-while-using-tee-with-a-pipe
+    #thanks to lhunath
+    mkdir -p logs
+    local logbase
+    logbase=logs/$1
+    shift
+    echo "Running: " "$@" " > >(tee ${logbase}_stdout.txt) 2> >(tee ${logbase}_stderr.txt >&2)"
+    "$@" > >(tee ${logbase}_stdout.txt) 2> >(tee ${logbase}_stderr.txt >&2) || error "logcmd $1"
+}
 
 # Check FSLOUTPUTTYPE and store appropriate extension in "ext"
-
 case "$FSLOUTPUTTYPE" in
     NIFTI_GZ)
 	ext=".nii.gz"
@@ -71,6 +97,44 @@ case "$FSLOUTPUTTYPE" in
 	error "Unsupported value for FSLOUTPUTTYPE: $FSLOUTPUTTYPE . Aborting"
 	;;
 esac
+
+if [ -d "$outdir" ]
+then
+    error "Output director already exists. Aborting"
+fi
+
+mkdir "$outdir"
+pushd "$outdir" > /dev/null
+
+qcoutdir=QC
+
+# Copy input files
+
+\cp "$indir/$t1" ./
+if [ -n "$rundti" ]
+then
+    \cp "$indir/$dti" ./
+    \cp "$indir/$bvec" ./
+    \cp "$indir/$bval" ./
+
+    if [ -n "$phase_enc" ]
+    then
+        acqp="acqp.txt"
+        index="index.txt"
+        nvols=$(fslnvols "$dti")
+        "$CHARGEDIR"/scripts/simple_eddy_cfg.sh "$phase_enc" $nvols $acqp $index
+    else
+        \cp "$indir/$acqp" ./
+        \cp "$indir/$index" ./
+    fi
+fi
+
+if [ $qc == 1 ]
+then
+    mkdir "$qcoutdir"
+    cp "$CHARGEDIR"/QC/boilerplate.html "$qcoutdir"/index.html
+fi
+
 
 
 qcappend(){
@@ -92,22 +156,6 @@ qcrun(){
 	qcappend "$out" || error "QC append error"
     fi
 }
-
-# wrapper function that handles redirection
-logcmd(){
-    #https://stackoverflow.com/questions/692000/how-do-i-write-stderr-to-a-file-while-using-tee-with-a-pipe
-    #thanks to lhunath
-    mkdir -p logs
-    local logbase
-    logbase=logs/$1
-    shift
-    echo "Running: " "$@" " > >(tee ${logbase}_stdout.txt) 2> >(tee ${logbase}_stderr.txt >&2)"
-    "$@" > >(tee ${logbase}_stdout.txt) 2> >(tee ${logbase}_stderr.txt >&2) || error "logcmd $1"
-}
-
-# Copy input files
-
-cp "$indir/$t1" ./
 
 atlas="$CHARGEDIR"/models/atlas_labels_ref.nii.gz
 brainmask="$CHARGEDIR"/models/icbm_mask_ref.nii.gz
@@ -144,6 +192,9 @@ t1betimage="$t1betdir"/bet$ext
 t1betimagecskull="$t1betdir"/bet_cropped_skull$ext
 t1betimagec="$t1betdir"/bet_cropped$ext
 t1skull="$t1betdir"/bet_skull$ext
+t1betmask="$t1betdir"/bet_mask$ext
+t1betmaskcskull="$t1betdir"/bet_mask_cropped_skull$ext
+t1betmaskc="$t1betdir"/bet_mask_cropped$ext
 
 t1fastdir=t1_fast_out
 t1fastout="$t1fastdir"/t1
@@ -166,6 +217,7 @@ nuoutdir=t1_nucor_out
 nucor="$nuoutdir"/nu$ext
 nucorcskull="$nuoutdir"/nu_cropped_skull$ext
 nucorc="$nuoutdir"/nu_cropped$ext
+nucorcbrain="$nuoutdir"/nu_cropped_brain$ext
 
 statsdir=stats_out
 statsfile="$statsdir"/stats.txt
@@ -184,13 +236,6 @@ atlas_lobe_wm="$statsdir"/atlas_lobe_wm$ext
 simple_atlas="$statsdir"/atlas_simple$ext
 # simple_atlas2=$statsdir/atlas_simple_pv$ext
 
-qcoutdir=QC
-if [ $qc == 1 ]
-then
-    mkdir "$qcoutdir"
-    cp "$CHARGEDIR"/QC/boilerplate.html "$qcoutdir"/index.html
-fi
-
 
 
 # Options
@@ -206,7 +251,7 @@ t1tissuefrac=0.9  # fraction of voxel that must be a tissue type for that voxel 
 
 # Do bet
 mkdir "$t1betdir"
-logcmd betlog bet "$t1" "$t1betimage" -f "$t1bet_f" -R -s
+logcmd betlog bet "$t1" "$t1betimage" -f "$t1bet_f" -R -s -m
 qcrun fade "T1" "BET" "$t1" "$t1betimage" "$qcoutdir" --logprefix logs/betlog
 
 
@@ -223,6 +268,8 @@ logcmd t1croplog fslroi "$t1" "$t1cskull" $xmin $xsize $ymin $ysize $zmin $zsize
 qcrun static "T1 crop 1" "$t1cskull" "$qcoutdir"
 logcmd betcroplog fslroi "$t1betimage" "$t1betimagecskull" $xmin $xsize $ymin $ysize $zmin $zsize
 qcrun static "BET crop 1" "$t1betimagecskull" "$qcoutdir"
+logcmd betmaskcroplog fslroi "$t1betmask" "$t1betmaskcskull" $xmin $xsize $ymin $ysize $zmin $zsize
+qcrun static "BET mask crop 1" "$t1betmaskcskull" "$qcoutdir"
 
 lims2=( $(fslstats "$t1cskull" -w) )
 sizepad=$((croppad2 * 2))
@@ -236,6 +283,8 @@ logcmd t1croplog2 fslroi "$t1cskull" "$t1c" $xmin2 $xsize2 $ymin2 $ysize2 $zmin2
 qcrun static "T1 crop 2" "$t1c" "$qcoutdir"
 logcmd betcroplog2 fslroi "$t1betimagecskull" "$t1betimagec" $xmin2 $xsize2 $ymin2 $ysize2 $zmin2 $zsize2
 qcrun static "BET crop 2" "$t1betimagec" "$qcoutdir"
+logcmd betmaskcroplog2 fslroi "$t1betmaskcskull" "$t1betmaskc" $xmin2 $xsize2 $ymin2 $ysize2 $zmin2 $zsize2
+qcrun static "BET mask crop 2" "$t1betmaskc" "$qcoutdir"
 
 # Segmentation
 #    Segment into white and grey matter. Simultaneously perform bias
@@ -324,6 +373,8 @@ logcmd nucorrectlog mri_nu_correct.mni --i "$t1" --o "$nucor"
 logcmd nucroplog fslroi "$nucor" "$nucorcskull" $xmin $xsize $ymin $ysize $zmin $zsize
 logcmd nucroplog fslroi "$nucorcskull" "$nucorc" $xmin2 $xsize2 $ymin2 $ysize2 $zmin2 $zsize2
 qcrun fade "T1" "NU corrected T1" "$t1c" "$nucorc" "$qcoutdir" --logprefix=logs/nucorrectlog
+logcmd numasklog fslmaths -dt double "$nucorc" -mas "$t1betmaskc" "$nucorcbrain" -odt double
+qcrun fade "NU corrected T1" "NU corrected T1 brain" "$nucorc" "$nucorcbrain" "$qcoutdir" --logprefix=logs/numasklog
 
 # Calculate intensity values
 
@@ -468,6 +519,7 @@ echo "# DTI filename: $dti"                                               >> "$s
 echo "# bvec: $bvec"                                                      >> "$statsfile"
 echo "# bval: $bval"                                                      >> "$statsfile"
 echo "# Onput directory: $outdir"                                         >> "$statsfile"
+echo "# useeddy: $useeddy"                                                >> "$statsfile"
 echo "# $(date)"                                                          >> "$statsfile"
 echotsv "${label_names[*]}"                                               >> "$statsfile" || error "echotsv"
 echo -e "\tBrain"                                                         >> "$statsfile"
@@ -485,6 +537,7 @@ echo "# DTI filename: $dti"                                               >> "$s
 echo "# bvec: $bvec"                                                      >> "$statsfile_simple"
 echo "# bval: $bval"                                                      >> "$statsfile_simple"
 echo "# Onput directory: $outdir"                                         >> "$statsfile_simple"
+echo "# useeddy: $useeddy"                                                >> "$statsfile_simple"
 echo "# $(date)"                                                          >> "$statsfile_simple"
 echotsv "${label_names_simple[*]}"                                        >> "$statsfile_simple" || error "echotsv"
 echo -e "\tBrain"                                                         >> "$statsfile_simple"
@@ -503,53 +556,36 @@ printstats "$simple_atlas" "T1" "$nucorc" 2 >> "$statsfile_simple" || error "pri
 if [ ! -z "$rundti" ]
 then
     
-    # Copy input files
-    
-    
-    \cp "$indir/$dti" ./
-    \cp "$indir/$bvec" ./
-    \cp "$indir/$bval" ./
     
     # Create variables
     
     dtibetdir=dti_bet_out
-    dtibetimage="$dtibetdir"/bet$ext
-    dtibetmask="$dtibetdir"/bet_mask$ext
+    dtib0="$dtibetdir"/dti_b0$ext
+    dtib0betimage="$dtibetdir"/dti_b0_bet$ext
+    dtib0betmask="$dtibetdir"/dti_b0_bet_mask$ext
     
     eddycordir=dti_eddy_out
-    eddycorimage="$eddycordir"/eddycor
+    eddycorbase="$eddycordir"/eddycor
+    eddycorimage="$eddycorbase"$ext
+    bvecrot="$eddycorbase".eddy_rotated_bvecs
+    eddylog="$eddycorbase".ecclog
+    eddycorb0="$eddycordir"/eddy_b0$ext
+    
+    dtiregdir=dti_reg_out
+    # structforreg="$dtiregdir"/dti_struct_for_reg$ext
+    dti2t1="$dtiregdir"/dti2struct
+    dti2t1_aff="$dti2t1"0GenericAffine.mat
+    dti2t1_warp="$dti2t1"1Warp.nii.gz
+    dti_native="$dtiregdir"/dti_native$ext
+    struct_native="$dtiregdir"/dti_struct_native$ext
+    #dtifa_native="$dtiregdir"/dti_FA_native$ext
+    #dtimd_native="$dtiregdir"/dti_MD_native$ext
     
     dtifitdir=dti_fit_out
     dtifitbase="$dtifitdir"/dti
-    dtifa="${dtifitbase}"_FA$ext
-    dtimd="${dtifitbase}"_MD$ext
-    
-    dtiregdir=dti_reg_out
-    structforreg="$dtiregdir"/dti_struct_for_reg$ext
-    dti2t1="$dtiregdir"/dti2struct_affine.mat
-    struct_native="$dtiregdir"/dti_struct_native$ext
-    dtifa_native="$dtiregdir"/dti_FA_native$ext
-    dtimd_native="$dtiregdir"/dti_MD_native$ext
+    dtifa_native="${dtifitbase}"_FA$ext
+    dtimd_native="${dtifitbase}"_MD$ext
 
-    antsbetdir=ants_bet_out
-    antsbetimage="$antsbetdir"/bet$ext
-    antsbetmask="$antsbetdir"/bet_mask$ext
-
-    antscordir=ants_cor_out
-    antscorimage="$antscordir"/eddycor$ext
-
-    antsdtifitdir=ants_dti_fit_out
-    antsdtifitbase="$antsdtifitdir"/dti
-    antsdtifa="${antsdtifitbase}"_FA$ext
-    antsdtimd="${antsdtifitbase}"_MD$ext
-
-    antsregdir=ants_reg_out
-    antsdtifa_native=$antsregdir/dti_FA_native$ext
-    antsdtimd_native=$antsregdir/dti_MD_native$ext
-
-    # The structural image is found
-    # by looking for 0 in the bval file.
-    
     
     
     refinds=( $(tr ' ' '\n' < "$bval" | awk 'NF > 0 && ($1 + 0) == 0 {print NR - 1}') ) || error "refinds calc"
@@ -558,76 +594,52 @@ then
         error "dti scan must contain exactly one structural (reference) image"
     fi
     echo "Structural scan found at index $refinds of $dti"
-
-    mkdir $antsbetdir
-    logcmd antsbetlog bet "$dti" "$antsbetimage" -m -F
-
-    mkdir $antscordir
-    logcmd antssplitlog fslsplit $dti $antscordir/split -t
-    structimg=$(printf "%s/split%04d%s" $antscordir $refinds $ext)
-
-    frames=$(ls $antscordir)
-    for s in $frames
-    do
-        ind=${s:5:4}
-        if [ $ind -ne $refinds ]
-        then
-            logcmd antsreg${ind}log antsIntermodalityIntrasubject.sh -d 3 -r $structimg -i $antscordir/$s -t 3 -x ${antsbetmask} -o $(printf "%s/splitfix%s" $antscordir $ind)
-        else
-            cp $antscordir/$s $(printf "%s/splitfix%sanatomical%s" $antscordir $ind $ext)
-        fi
-    done
-    logcmd antsmergelog fslmerge -t $antscorimage $(ls $antscordir/splitfix*anatomical$ext)
-
-    mkdir $antsdtifitdir
-    logcmd antsdtifitlog dtifit --data="$antscorimage" --out="$antsdtifitbase" --mask="$antsbetmask" --bvecs="$bvec" --bvals="$bval"
+    mkdir "$dtibetdir"
+    logcmd dtibetroilog fslroi "$dti" "$dtib0" $refinds 1
     
+    
+    # BET 
+    # https://www.jiscmail.ac.uk/cgi-bin/webadmin?A2=ind1807&L=FSL&P=R900&1=FSL&9=A&I=-3&J=on&X=46611749C95967F6DF&Y=stilley%40hollandbloorview.ca&d=No+Match%3BMatch%3BMatches&z=4
+    logcmd dtib0betlog bet "$dtib0" "$dtib0betimage" -m
+    qcrun fade "DTI b0" "DTI b0 BET" "$dtib0" "$dtib0betimage" "$qcoutdir" --logprefix logs/dtib0betlog
+
     # Eddy correction
-    
     mkdir "$eddycordir"
-    
     
     # This registers everything to the reference frame using the correlation ratio
     # cost function and a linear transformation (flirt).
-    logcmd eddycorrectlog eddy_correct "$dti" "$eddycorimage" $refinds
-    qcrun logs "Eddy correct" logs/eddycorrectlog "$qcoutdir"
+    if [ $useeddy -eq 1 ]
+    then
+        # https://www.jiscmail.ac.uk/cgi-bin/webadmin?A2=ind1807&L=FSL&P=R900&1=FSL&9=A&I=-3&J=on&X=46611749C95967F6DF&Y=stilley%40hollandbloorview.ca&d=No+Match%3BMatch%3BMatches&z=4
+        logcmd eddycorrectlog eddy_openmp --imain="$dti" --mask="$dtib0betmask" --acqp="$acqp" --index="$index" --bvecs="$bvec" --bvals="$bval" --out="$eddycorbase"
+        qcrun logs "Eddy correct (eddy_openmp)" logs/eddycorrectlog "$qcoutdir"
+    else
+        # logcmd dtibetlog bet "$dti" "$dtibetimage" -m -F
+        # qcrun logs "DTI BET (for eddy_correct)" logs/dtibetlog "$qcoutdir"
+        logcmd eddycorrectlog eddy_correct "$dti" "$eddycorimage" $refinds
+        qcrun logs "Eddy correct (eddy_correct)" logs/eddycorrectlog "$qcoutdir"
+        fdt_rotate_bvecs "$bvec" "$bvecrot" "$eddylog"
+    fi
+    logcmd dtieddycorroilog fslroi "$eddycorimage" "$eddycorb0" $refinds 1
     
-    # BET 
-    
-    mkdir "$dtibetdir"
-    
-    
-    
-    # #+RESULTS:
-    
-    
-    logcmd dtibetlog bet "$eddycorimage" "$dtibetimage" -m -F
-    qcrun logs "DTI BET" logs/dtibetlog "$qcoutdir"
-    
+    mkdir "$dtiregdir"
+    logcmd antsreglog antsIntermodalityIntrasubject.sh -d 3 -r "$nucorcbrain" -i "$eddycorb0" -t 2 -x "$t1betmaskc" -o "$dti2t1"
+    qcrun logs "Ants structural to T1" logs/antsreglog "$qcoutdir"
+    logcmd antsapplylog antsApplyTransforms -d 3 -r "$nucorcbrain" -i "$eddycorimage" -e 3 -t "$dti2t1_warp" -t "$dti2t1_aff" -o "$dti_native"
+    logcmd dtistructnative fslroi "$dti_native" "$struct_native" $refinds 1
+    qcrun fade "T1" "DTI b0 in T1 coords" "$nucorc" "$struct_native" "$qcoutdir" --logprefix logs/antsapplylog
+
     # DTIFIT
     
     
     mkdir "$dtifitdir"
     
-    # I switched input from dtibetimage to eddycorimage, which
-    # I think is better and more like what psmd does.
-    logcmd dtifitlog dtifit --data="$eddycorimage" --out="$dtifitbase" --mask="$dtibetmask" --bvecs="$bvec" --bvals="$bval"
+    logcmd dtifitlog dtifit --data="$dti_native" --out="$dtifitbase" --mask="$t1betmaskc" --bvecs="$bvecrot" --bvals="$bval"
     qcrun logs "DTI Fit" logs/dtifitlog "$qcoutdir"
-    qcrun static "DTI Fit: FA" "$dtifa" "$qcoutdir"
-    qcrun static "DTI Fit: MD" "$dtimd" "$qcoutdir"
+    qcrun static "DTI Fit: FA" "$dtifa_native" "$qcoutdir"
+    qcrun static "DTI Fit: MD" "$dtimd_native" "$qcoutdir"
     
-    # Registration
-    
-    
-    mkdir "$dtiregdir"
-    
-    logcmd dtibetroilog fslroi "$dtibetimage" "$structforreg" $refinds 1
-    logcmd dtiflirtlog flirt -ref "$t1betcorc" -in "$structforreg" -omat "$dti2t1" -out "$struct_native"
-    qcrun fade "T1" "DTI struct reference in T1 coords" "$nucorc" "$struct_native" "$qcoutdir" --logprefix logs/dtiflirtlog
-    logcmd dtifatransformlog flirt -ref "$t1betcorc" -init "$dti2t1" -applyxfm -in "$dtifa" -out "$dtifa_native"
-    qcrun fade "T1" "FA in T1 coords" "$nucorc" "$dtifa_native" "$qcoutdir" --logprefix logs/dtifatransformlog
-    logcmd dtimdtransformlog flirt -ref "$t1betcorc" -init "$dti2t1" -applyxfm -in "$dtimd" -out "$dtimd_native"
-    qcrun fade "T1" "MD in T1 coords" "$nucorc" "$dtimd_native" "$qcoutdir" --logprefix logs/dtimdtransformlog
+    qcrun fade "T1" "MD" "$nucorc" "$dtimd_native" "$qcoutdir"
     qcrun static "Brain mask over FA" "$dtifa_native" "$qcoutdir" --labelfile "$brainmask_native"
     qcrun static "Brain mask over MD" "$dtimd_native" "$qcoutdir" --labelfile "$brainmask_native"
     qcrun static "Lobe mask over FA" "$dtifa_native" "$qcoutdir" --labelfile "$atlas_native"
@@ -638,27 +650,11 @@ then
     
     printstats "$combined_atlas" "FA" "$dtifa_native" 28 >> "$statsfile" || error "printstats"
     printstats "$combined_atlas" "MD" "$dtimd_native" 28 >> "$statsfile" || error "printstats"
-    # printstats "pvatlas" $combined_atlas2 "FA" $dtifa_native 28 >> $statsfile || error "printstats"
-    # printstats "pvatlas" $combined_atlas2 "MD" $dtimd_native 28 >> $statsfile || error "printstats"
     
     
     printstats "$simple_atlas" "FA" "$dtifa_native" 2 >> "$statsfile_simple" || error "printstats"
     printstats "$simple_atlas" "MD" "$dtimd_native" 2 >> "$statsfile_simple" || error "printstats"
-    # printstats "pvatlas" $simple_atlas2 "FA" $dtifa_native 2 >> $statsfile_simple || error "printstats"
-    # printstats "pvatlas" $simple_atlas2 "MD" $dtimd_native 2 >> $statsfile_simple || error "printstats"
 
-    mkdir $antsregdir
-    logcmd antsdtifatransformlog flirt -ref "$t1betcorc" -init "$dti2t1" -applyxfm -in "$antsdtifa" -out "$antsdtifa_native"
-    logcmd antsdtimdtransformlog flirt -ref "$t1betcorc" -init "$dti2t1" -applyxfm -in "$antsdtimd" -out "$antsdtimd_native"
-
-    printstats "$combined_atlas" "FAants" "$antsdtifa_native" 28 >> "$statsfile" || error "printstats"
-    printstats "$combined_atlas" "MDants" "$antsdtimd_native" 28 >> "$statsfile" || error "printstats"
-    # printstats "pvatlas" $combined_atlas2 "FA" $dtifa_native 28 >> $statsfile || error "printstats"
-    # printstats "pvatlas" $combined_atlas2 "MD" $dtimd_native 28 >> $statsfile || error "printstats"
-    
-    
-    printstats "$simple_atlas" "FAants" "$antsdtifa_native" 2 >> "$statsfile_simple" || error "printstats"
-    printstats "$simple_atlas" "MDants" "$antsdtimd_native" 2 >> "$statsfile_simple" || error "printstats"
 fi
 
 # Cleanup
