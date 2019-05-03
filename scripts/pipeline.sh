@@ -21,6 +21,7 @@ usage="Usage: pipeline.sh [-q] [-f freesurfer_license] [-p phase_encoding_direct
 
 qc=0
 useeddy=0
+phase_enc=""
 while getopts qf:p: name
 do
     case $name in
@@ -117,15 +118,18 @@ then
     \cp "$indir/$bvec" ./
     \cp "$indir/$bval" ./
 
-    if [ -n "$phase_enc" ]
+    if [ $useeddy -eq 1 ]
     then
-        acqp="acqp.txt"
-        index="index.txt"
-        nvols=$(fslnvols "$dti")
-        "$CHARGEDIR"/scripts/simple_eddy_cfg.sh "$phase_enc" $nvols $acqp $index
-    else
-        \cp "$indir/$acqp" ./
-        \cp "$indir/$index" ./
+        if [ -n "$phase_enc" ]
+        then
+            acqp="acqp.txt"
+            index="index.txt"
+            nvols=$(fslnvols "$dti")
+            "$CHARGEDIR"/scripts/simple_eddy_cfg.sh "$phase_enc" $nvols $acqp $index
+        else
+            \cp "$indir/$acqp" ./
+            \cp "$indir/$index" ./
+        fi
     fi
 fi
 
@@ -133,6 +137,11 @@ if [ $qc == 1 ]
 then
     mkdir "$qcoutdir"
     cp "$CHARGEDIR"/QC/boilerplate.html "$qcoutdir"/index.html
+fi
+
+if [ $useeddy -eq 1 ]
+then
+    echo 1 > eddyflag
 fi
 
 
@@ -660,13 +669,21 @@ fi
 # Cleanup
 ERROR=0
 WARNING=0
-if cat logs/*stderr.txt | grep -v -e '^Saving result to .* (type = MINC )\s*\[ ok \]$' > /dev/null
+errlogs=$(ls logs/*stderr.txt | grep -v antsreglog)
+if cat $errlogs | grep -v -e '^Saving result to .* (type = MINC )\s*\[ ok \]$' > /dev/null
 then
     # something was found in stderr
-    echo "2: ERROR. stderr output indicates error" > status.txt
+    echo "ERROR. stderr output indicates error" > status.txt
     ERROR=1
 else
-    echo "0: stderr output does not indicate error" > status.txt
+    echo "stderr output does not indicate error" > status.txt
+fi
+if [ $(wc -l < logs/antsreglog_stderr.txt) -ne 17 ]
+then
+    echo "ERROR antsreglog_stderr does not have expected number of lines (17)." >> status.txt
+    ERROR=1
+else
+    echo "antsreglog_stderr has the correct number of lines (17)." >> status.txt
 fi
 if grep -e '^Warning, Jacobian not within prescribed range' logs/fnirtlog_stdout.txt > /dev/null
 then
@@ -675,12 +692,12 @@ then
     if ! grep -e '^Warning, Jacobian not within prescribed range' logs/fnirtlog_stdout.txt | awk '($(16) < -0.5) {exit 1}'
     then
 	ERROR=1
-	echo "2: ERROR. logs/fnirtlog_stdout.txt indicates jacobian determinent is well outside prescribed range. Check registrations" >> status.txt
+	echo "ERROR. logs/fnirtlog_stdout.txt indicates jacobian determinent is well outside prescribed range. Check registrations" >> status.txt
     else
-	echo "1: WARNING. logs/fnirtlog_stdout.txt indicates a warning with Jacobians. Check registrations" >> status.txt
+	echo "WARNING. logs/fnirtlog_stdout.txt indicates a warning with Jacobians. Check registrations" >> status.txt
     fi
 else
-    echo "0: logs/fnirtlog_stdout.txt indicates no warnings or errors" >> status.txt
+    echo "logs/fnirtlog_stdout.txt indicates no warnings or errors" >> status.txt
 fi
 echo $ERROR > errorflag
 echo $WARNING > warningflag
