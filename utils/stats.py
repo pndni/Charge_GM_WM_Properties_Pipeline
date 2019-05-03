@@ -69,10 +69,12 @@ def main(arglist=None):
     input = nibabel.load(args.input).get_fdata()
 
     if args.K:
-        mask = np.asanyarray(nibabel.load(args.K).dataobj)
+        mask = nibabel.load(args.K).get_fdata()
+        # mask = np.asanyarray(nibabel.load(args.K).dataobj)
         uniq = np.unique(mask)
         if not np.all(uniq == uniq.astype(np.int)):
             raise RuntimeError("mask must have only integer values")
+        mask = mask.astype(np.int)
         labels = np.arange(1, np.max(mask) + 1)
         out = []
         for l in labels:
