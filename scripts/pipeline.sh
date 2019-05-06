@@ -581,6 +581,7 @@ then
     eddycorb0="$eddycordir"/eddy_b0$ext
     
     dtiregdir=dti_reg_out
+    nucorcbrainrs="$dtiregdir"/nu_cropped_brain_resampled$ext
     # structforreg="$dtiregdir"/dti_struct_for_reg$ext
     dti2t1="$dtiregdir"/dti2struct
     dti2t1_aff="$dti2t1"0GenericAffine.mat
@@ -632,7 +633,10 @@ then
     logcmd dtieddycorroilog fslroi "$eddycorimage" "$eddycorb0" $refinds 1
     
     mkdir "$dtiregdir"
-    logcmd antsreglog antsIntermodalityIntrasubject.sh -d 3 -r "$nucorcbrain" -i "$eddycorb0" -t 2 -x "$t1betmaskc" -o "$dti2t1"
+    dtispacing=$(PrintHeader "$eddycorb0" 1 | tr 'x' ' ')
+    logcmd resampleforantslog ResampleImageBySpacing 3 "$nucorcbrain" "$nucorcbrainrs" $dtispacing
+    qcrun fade "NU corrected brain" "NU corrected brain dti resolution" "$nucorcbrain" "$nucorcbrainrs" "$qcoutdir" --logprefix logs/resampleforantslog
+    logcmd antsreglog antsIntermodalityIntrasubject.sh -d 3 -r "$nucorcbrainrs" -R "$nucorcbrain" -i "$eddycorb0" -t 2 -x "$t1betmaskc" -o "$dti2t1"
     qcrun logs "Ants structural to T1" logs/antsreglog "$qcoutdir"
     logcmd antsapplylog antsApplyTransforms -d 3 -r "$nucorcbrain" -i "$eddycorimage" -e 3 -t "$dti2t1_warp" -t "$dti2t1_aff" -o "$dti_native"
     logcmd dtistructnative fslroi "$dti_native" "$struct_native" $refinds 1
