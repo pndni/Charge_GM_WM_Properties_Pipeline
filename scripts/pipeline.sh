@@ -41,7 +41,7 @@ do
     esac
 done
 shift $((OPTIND - 1))
-echo $#
+
 if [ $# -ne 3 ] && [ $# -ne 6 ] && [ $# -ne 8 ]
 then
     error "$usage"
@@ -102,7 +102,7 @@ case "$FSLOUTPUTTYPE" in
 	;;
 esac
 
-if [ -d "$outdir" ]
+if [ -e "$outdir" ]
 then
     error "Output director already exists. Aborting"
 fi
@@ -200,8 +200,8 @@ gm=1
 wm=2
 
 t1betdir=t1_bet_out
-t1cskull=t1_cropped_skull$ext
-t1c=t1_cropped$ext
+t1cskull="$t1betdir"/t1_cropped_skull$ext
+t1c="$t1betdir"/t1_cropped$ext
 t1betimage="$t1betdir"/bet$ext
 t1betimagecskull="$t1betdir"/bet_cropped_skull$ext
 t1betimagec="$t1betdir"/bet_cropped$ext
@@ -225,7 +225,7 @@ s2rwarp="$t1regdir"/struct2mni_warp$ext # warp transformation from the T1 image 
 r2swarp="$t1regdir"/mni2struct_warp$ext # warp transformation from the MNI reference to the T1 image
 t1betcorref="$t1regdir"/t1_bet_cor_ref$ext # betcor transformed to MNI coords
 atlas_native="$t1regdir"/atlas_labels_native$ext
-brainmask_native="$t1regdir"/icbm_mask_native$ext
+brainmask_native="$t1regdir"/brain_mask_native$ext
 
 nuoutdir=t1_nucor_out
 nucor="$nuoutdir"/nu$ext
@@ -247,7 +247,7 @@ atlas_lobe_gm="$statsdir"/atlas_lobe_gm$ext
 atlas_lobe_wm="$statsdir"/atlas_lobe_wm$ext
 # atlas_lobe_gm2=$statsdir/atlas_lobe_gm_pv$ext
 # atlas_lobe_wm2=$statsdir/atlas_lobe_wm_pv$ext
-simple_atlas="$statsdir"/atlas_simple$ext
+simple_atlas="$statsdir"/simple_atlas$ext
 # simple_atlas2=$statsdir/atlas_simple_pv$ext
 
 
@@ -385,7 +385,7 @@ logcmd checkedgeslog fslpython "$CHARGEDIR"/utils/check_edges.py "$brainmask_nat
 mkdir "$nuoutdir"
 logcmd nucorrectlog mri_nu_correct.mni --i "$t1" --o "$nucor"
 logcmd nucroplog fslroi "$nucor" "$nucorcskull" $xmin $xsize $ymin $ysize $zmin $zsize
-logcmd nucroplog fslroi "$nucorcskull" "$nucorc" $xmin2 $xsize2 $ymin2 $ysize2 $zmin2 $zsize2
+logcmd nucroplog2 fslroi "$nucorcskull" "$nucorc" $xmin2 $xsize2 $ymin2 $ysize2 $zmin2 $zsize2
 qcrun fade "T1" "NU corrected T1" "$t1c" "$nucorc" "$qcoutdir" --logprefix=logs/nucorrectlog
 logcmd numasklog fslmaths -dt double "$nucorc" -mas "$t1betmaskc" "$nucorcbrain" -odt double
 qcrun fade "NU corrected T1" "NU corrected T1 brain" "$nucorc" "$nucorcbrain" "$qcoutdir" --logprefix=logs/numasklog
@@ -535,7 +535,7 @@ echo "# T1 filename: $t1"                                                 >> "$s
 echo "# DTI filename: $dti"                                               >> "$statsfile"
 echo "# bvec: $bvec"                                                      >> "$statsfile"
 echo "# bval: $bval"                                                      >> "$statsfile"
-echo "# Onput directory: $outdir"                                         >> "$statsfile"
+echo "# Output directory: $outdir"                                         >> "$statsfile"
 echo "# useeddy: $useeddy"                                                >> "$statsfile"
 echo "# $(date)"                                                          >> "$statsfile"
 echotsv "${label_names[*]}"                                               >> "$statsfile" || error "echotsv"
@@ -556,7 +556,7 @@ echo "# T1 filename: $t1"                                                 >> "$s
 echo "# DTI filename: $dti"                                               >> "$statsfile_simple"
 echo "# bvec: $bvec"                                                      >> "$statsfile_simple"
 echo "# bval: $bval"                                                      >> "$statsfile_simple"
-echo "# Onput directory: $outdir"                                         >> "$statsfile_simple"
+echo "# Output directory: $outdir"                                         >> "$statsfile_simple"
 echo "# useeddy: $useeddy"                                                >> "$statsfile_simple"
 echo "# $(date)"                                                          >> "$statsfile_simple"
 echotsv "${label_names_simple[*]}"                                        >> "$statsfile_simple" || error "echotsv"
@@ -648,7 +648,7 @@ then
     logcmd resampleforantslog ResampleImageBySpacing 3 "$nucorcbrain" "$nucorcbrainrs" $dtispacing
     qcrun fade "NU corrected brain" "NU corrected brain dti resolution" "$nucorcbrain" "$nucorcbrainrs" "$qcoutdir" --logprefix logs/resampleforantslog
     logcmd antsreglog antsIntermodalityIntrasubject.sh -d 3 -r "$nucorcbrainrs" -R "$nucorcbrain" -i "$eddycorb0" -t 2 -x "$t1betmaskc" -o "$dti2t1"
-    qcrun logs "Ants structural to T1" logs/antsreglog "$qcoutdir"
+    qcrun logs "Ants DTI to T1" logs/antsreglog "$qcoutdir"
     logcmd antsapplylog antsApplyTransforms -d 3 -r "$nucorcbrain" -i "$eddycorimage" -e 3 -t "$dti2t1_warp" -t "$dti2t1_aff" -o "$dti_native"
     logcmd dtistructnative fslroi "$dti_native" "$struct_native" $refinds 1
     qcrun fade "T1" "DTI b0 in T1 coords" "$nucorc" "$struct_native" "$qcoutdir" --logprefix logs/antsapplylog
