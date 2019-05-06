@@ -69,5 +69,13 @@ ENV FIX_VERTEX_AREA=""
 RUN mkdir -p /mnt/indir
 RUN mkdir -p /mnt/outdir
 
+ENV CHARGEDIR=/opt/charge
+COPY scripts /opt/charge/scripts/
+COPY utils /opt/charge/utils/
+COPY models /opt/charge/models/
+COPY QC /opt/charge/QC/
+
+ENTRYPOINT ["/opt/charge/scripts/pipeline.sh"]
+
 LABEL Maintainer="Steven Tilley"
 LABEL Version=dev
