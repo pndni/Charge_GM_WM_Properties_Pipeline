@@ -114,7 +114,7 @@ combine_flattened (){
 tmpdir=$(mktemp -d)
 while read subject
 do
-     if [ -e "$subject"/stats_out/${1}.txt ]
+     if [ -e "$subject"/status.txt ]
      then
          echo -e "errorflag\twarningflag\teddyflag" > $tmpdir/"${subject}"_${1}_flags.txt
          paste "$subject"/errorflag "$subject"/warningflag "$subject"/eddyflag >> $tmpdir/"${subject}"_${1}_flags.txt
