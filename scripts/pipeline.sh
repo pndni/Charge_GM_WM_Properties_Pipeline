@@ -44,7 +44,7 @@ shift $((OPTIND - 1))
 echo $#
 if [ $# -ne 3 ] && [ $# -ne 6 ] && [ $# -ne 8 ]
 then
-    error $usage
+    error "$usage"
 fi
 indir="$1"
 shift
@@ -73,7 +73,7 @@ then
         index="$2"
     elif [ $# -ne 0 ]
     then
-        error $usage
+        error "$usage"
     fi
 fi
 
@@ -145,6 +145,8 @@ fi
 if [ $useeddy -eq 1 ]
 then
     echo 1 > eddyflag
+else
+    echo 0 > eddyflag
 fi
 
 
