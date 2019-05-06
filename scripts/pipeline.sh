@@ -16,6 +16,9 @@ error() {
 # Calculate and store hash of this file for logging and reproducibility
 
 selfhash=$(sha256sum $0)
+fsversion=$(cat $FREESURFER_HOME/build-stamp.txt)
+fslversion=$(cat $FSLDIR/etc/fslversion)
+antsversion=$(antsRegistration --version | head -n 1)
 
 usage="Usage: pipeline.sh [-q] [-f freesurfer_license] [-p phase_encoding_direction] indir t1 outdir [dti bvec bval [acqp index]]"
 
@@ -522,6 +525,9 @@ printstats() {
 
 echo "# Data calculated using $(basename $0) with sha256 ${selfhash}"     > "$statsfile"
 echo "# Version: $version"                                                >> "$statsfile"
+echo "# FreeSurfer Version: $fsversion"                                   >> "$statsfile"
+echo "# FSL Version: $fslversion"                                         >> "$statsfile"
+echo "# $antsversion"                                                     >> "$statsfile"
 echo "# Input directory: $indir"                                          >> "$statsfile"
 echo "# T1 filename: $t1"                                                 >> "$statsfile"
 echo "# DTI filename: $dti"                                               >> "$statsfile"
@@ -540,6 +546,9 @@ printstats "$combined_atlas" "T1" "$nucorc" 28 >> "$statsfile" || error "printst
 
 echo "# Data calculated using $(basename $0) with sha256 ${selfhash}"     > "$statsfile_simple"
 echo "# Version: $version"                                                >> "$statsfile_simple"
+echo "# FreeSurfer Version: $fsversion"                                   >> "$statsfile_simple"
+echo "# FSL Version: $fslversion"                                         >> "$statsfile_simple"
+echo "# $antsversion"                                                     >> "$statsfile_simple"
 echo "# Input directory: $indir"                                          >> "$statsfile_simple"
 echo "# T1 filename: $t1"                                                 >> "$statsfile_simple"
 echo "# DTI filename: $dti"                                               >> "$statsfile_simple"
