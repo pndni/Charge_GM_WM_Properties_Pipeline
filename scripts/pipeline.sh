@@ -649,7 +649,7 @@ then
     qcrun fade "NU corrected brain" "NU corrected brain dti resolution" "$nucorcbrain" "$nucorcbrainrs" "$qcoutdir" --logprefix logs/resampleforantslog
     logcmd antsreglog antsIntermodalityIntrasubject.sh -d 3 -r "$nucorcbrainrs" -R "$nucorcbrain" -i "$eddycorb0" -t 2 -x "$t1betmaskc" -o "$dti2t1"
     qcrun logs "Ants DTI to T1" logs/antsreglog "$qcoutdir"
-    logcmd antsapplylog antsApplyTransforms -d 3 -r "$nucorcbrain" -i "$eddycorimage" -e 3 -t "$dti2t1_warp" -t "$dti2t1_aff" -o "$dti_native"
+    logcmd antsapplylog antsApplyTransforms -d 3 -r "$nucorcbrain" -i "$eddycorimage" -e 3 -t "$dti2t1_warp" -t "$dti2t1_aff" -o "$dti_native" -n Linear
     logcmd dtistructnative fslroi "$dti_native" "$struct_native" $refinds 1
     qcrun fade "T1" "DTI b0 in T1 coords" "$nucorc" "$struct_native" "$qcoutdir" --logprefix logs/antsapplylog
 
