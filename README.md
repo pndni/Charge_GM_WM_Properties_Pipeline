@@ -49,6 +49,9 @@ mkdir logs
 
 NB. The subject name cannot contain spaces.
 
+NB. We assume that your data is oriented correctly for FSL. See [here](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/Orientation%20Explained)
+for more information.
+
 ## Workflow 1 (prefered)
 
 1. If singularity 2.5.2 or greater is not installed on your system then [install singularity](#Installing-Singularity)
@@ -316,6 +319,8 @@ is done by passing i, j, or k to the `-p` argument, respectively. For example, i
    
 If neither `acqp.txt` and `index.txt` or `-p` is passed, then the pipeline will use the older
 `eddy_correct` method instead.
+
+If `eddy` does not seem to work for your data, you may want to try `eddy_correct`.
 
 # Outputs
 
