@@ -4,7 +4,7 @@ set -e  # exit on error
 set -u  # exit on undefined variable
 \unalias -a  # remove all aliases (e.g. some systems alias 'cp' to 'cp -i')
 
-version=dev
+version=1.0.0-alpha11
 
 error() {
   >&2 echo $1
