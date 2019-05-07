@@ -78,4 +78,4 @@ COPY QC /opt/charge/QC/
 ENTRYPOINT ["/opt/charge/scripts/pipeline.sh"]
 
 LABEL Maintainer="Steven Tilley"
-LABEL Version=dev
+LABEL Version=1.0.0-alpha10
