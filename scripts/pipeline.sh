@@ -589,7 +589,7 @@ then
     eddycorimage="$eddycorbase"$ext
     bvecrot="$eddycorbase".eddy_rotated_bvecs
     eddylog="$eddycorbase".ecclog
-    eddycorb0="$eddycordir"/eddy_b0$ext
+    eddycorsplitdir="$eddycordir"/split
     
     dtiregdir=dti_reg_out
     nucorcbrainrs="$dtiregdir"/nu_cropped_brain_resampled$ext
@@ -597,6 +597,7 @@ then
     dti2t1="$dtiregdir"/dti2struct
     dti2t1_aff="$dti2t1"0GenericAffine.mat
     dti2t1_warp="$dti2t1"1Warp.nii.gz
+    dtiregsplitdir="$dtiregdir"/split
     dti_native="$dtiregdir"/dti_native$ext
     struct_native="$dtiregdir"/dti_struct_native$ext
     #dtifa_native="$dtiregdir"/dti_FA_native$ext
@@ -641,7 +642,9 @@ then
         qcrun logs "Eddy correct (eddy_correct)" logs/eddycorrectlog "$qcoutdir"
         fdt_rotate_bvecs "$bvec" "$bvecrot" "$eddylog"
     fi
-    logcmd dtieddycorroilog fslroi "$eddycorimage" "$eddycorb0" $refinds 1
+    mkdir "$eddycorsplitdir"
+    logcmd fslsplitlog fslsplit "$eddycorimage" "$eddycorsplitdir"/ -t
+    eddycorb0="$eddycorsplitdir"/$(printf "%04d" $refinds)$ext
     
     mkdir "$dtiregdir"
     dtispacing=$(PrintHeader "$eddycorb0" 1 | tr 'x' ' ')
@@ -649,8 +652,22 @@ then
     qcrun fade "NU corrected brain" "NU corrected brain dti resolution" "$nucorcbrain" "$nucorcbrainrs" "$qcoutdir" --logprefix logs/resampleforantslog
     logcmd antsreglog antsIntermodalityIntrasubject.sh -d 3 -r "$nucorcbrainrs" -R "$nucorcbrain" -i "$eddycorb0" -t 2 -x "$t1betmaskc" -o "$dti2t1"
     qcrun logs "Ants DTI to T1" logs/antsreglog "$qcoutdir"
-    logcmd antsapplylog antsApplyTransforms -d 3 -r "$nucorcbrain" -i "$eddycorimage" -e 3 -t "$dti2t1_warp" -t "$dti2t1_aff" -o "$dti_native" -n Linear
-    logcmd dtistructnative fslroi "$dti_native" "$struct_native" $refinds 1
+
+    mkdir "$dtiregsplitdir"
+    nvols=$(fslnvols "$dti")
+    declare -a tojoin
+    for ((i=0;i<$nvols;i+=1))
+    do
+        indfmt=$(printf "%04d" $i)
+        inreg="$eddycorsplitdir"/$indfmt$ext
+        outreg="$dtiregsplitdir"/$indfmt$ext
+        logcmd antsapply${indfmt}log antsApplyTransforms -d 3 -r "$nucorcbrain" -i "$inreg" -t "$dti2t1_warp" -t "$dti2t1_aff" -o "$outreg" -n Linear
+        tojoin[$i]="$outreg"
+        cat logs/antsapply${indfmt}log_stdout.txt >> logs/antsapplylog_stdout.txt
+        cat logs/antsapply${indfmt}log_stderr.txt >> logs/antsapplylog_stderr.txt
+    done
+    logcmd fslmergelog fslmerge -t "$dti_native" "${tojoin[@]}"
+    struct_native="$dtiregsplitdir"/$(printf "%04d" $refinds)$ext
     qcrun fade "T1" "DTI b0 in T1 coords" "$nucorc" "$struct_native" "$qcoutdir" --logprefix logs/antsapplylog
 
     # DTIFIT
