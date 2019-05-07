@@ -293,7 +293,7 @@ if `acqp.txt` and `index.txt` are in `$indir`.
 
 However, in most cases each diffusion weighted image uses the same phase encoding direction and acquisition time,
 in which case the acquisition time is [irrelevent](https://www.jiscmail.ac.uk/cgi-bin/webadmin?A2=FSL;aee0425b.1708).
-For this case, you can simply tell the pipeline whether the phase encoding is in the x, y, or z direction. This
+For these cases, you can simply tell the pipeline whether the phase encoding is in the x, y, or z direction. This
 is done by passing i, j, or k to the `-p` argument, respectively. For example, if the encoding is in the y direction:
 ```bash
    singularity run \
@@ -315,7 +315,7 @@ is done by passing i, j, or k to the `-p` argument, respectively. For example, i
    ```
    
 If neither `acqp.txt` and `index.txt` or `-p` is passed, then the pipeline will use the older
-`eddy_correct` method.
+`eddy_correct` method instead.
 
 # Outputs
 
@@ -332,12 +332,16 @@ occipital lobes. For example
 ```
 # Data calculated using pipeline.sh with sha256 has dabdbd33522f7789e9dc274afc0a7b9bacc8c02b890a396b32dc171dd0d5aaf0  /scif/apps/charge/scripts/pipeline.sh
 # Version: 1.0.0
+# FreeSurfer Version: freesurfer-Linux-centos6_x86_64-stable-pub-v6.0.1-f53a55a
+# FSL Version: 6.0.1
+# ANTs Version: 2.2.0.dev150-g6f403
 # Input directory: /mnt/indir
 # T1 filename: sub1_t1w.nii
 # DTI filename: sub1_dti.nii
 # bvec: sub1_dti.bvec
 # bval: sub1_dti.bval
-# Onput directory: /mnt/outdir/sub1
+# Output directory: /mnt/outdir/sub1
+# useeddy: 1
 # Thu Apr  4 11:26:26 EDT 2019
     gm  wm  Brain
 T1_mean 132.543153  192.408432  147.460649
@@ -372,7 +376,7 @@ MD_kurtosis 4.7861540352992975  15.551729763640417  7.230834464420985
 `stats.txt` is similar, but contains results for each part of the lobe
 mask separately (i.e. the complex atlas described below).
 
-## errorflag, warningflag, and status.txt
+## errorflag, warningflag, eddyflag, and status.txt
 
 ### warningflag
 The `fnirt` stdout is searched for a specific warning regarding the invertibility of the registration.
@@ -383,10 +387,13 @@ See [here](https://www.jiscmail.ac.uk/cgi-bin/webadmin?A2=fsl;f2771bce.1511) for
 ### errorflag
 The stderr outputs for many of the commands are checked for errors. If anything suspicious is found,
 the contents of the `errorflag` file is set to 1, otherwise it is set to 0. `errorflag` is also set to 1
-if `fnirt` stdout reports results.
+if `fnirt` stdout reports bad Jacobian determinants (see above).
+
+### eddyflag
+Eddyflag is 1 if `eddy` is used and 0 if `eddy_correct` is used for eddy correction
     
 ### status.txt
-    `status.txt` is a more human-readable report of the errors/warnings
+`status.txt` is a more human-readable report of the errors/warnings
 
 ## QC pages
 
@@ -428,6 +435,9 @@ and to combine the `stats_simple` files, run
 ```bash
 ./combine_data.sh stats_simple < subject_list > stats_simple_combined.txt
 ```
+The combine data script will check for the presence of `status.txt` in each subject's
+output directory. If the file is found, it copies that subjects data into the
+combined output file. Otherwise, that subject is skipped.
        
 # Installing Singularity
 
@@ -453,35 +463,39 @@ sudo make install
 
 # Advanced Usage
 
-The pipe script or singularity container may be called directly for a given subject. Using singularity
+The pipeline script or singularity container may be called directly for a given subject. Using singularity
 ```bash
-singularity run --containall --app charge --bind "input_directory":/mnt/input:ro --bind "output_directory":/mnt/output -q -f "freesurfer_license" /mnt/indir "t1_filename" /mnt/outdir "dti_filename" "bvec_filename" "bval_filename"
+singularity run --cleanenv --bind "input_directory":/mnt/input:ro --bind "output_directory":/mnt/output -q -f "freesurfer_license" -p j /mnt/indir "t1_filename" /mnt/outdir "dti_filename" "bvec_filename" "bval_filename"
 ```
 where the full path of the t1 file is `"input_directory"/"t1_filename"`, etc.
 The `-q` flag turns on QC pages, and the `-f` option specifies the full path of the
 FreeSurfer license (which must be visible from the running container). This option is required when using
 the singularity container.
+The `-p` flag indicates the phase encoding direction (optional).
 A FreeSurfer license can be obtained [here](https://surfer.nmr.mgh.harvard.edu/registration.html).
 
 NB. We recommended _not_ having spaces in the filenames or paths
 
 The equivalent command without singularity is
 ```bash
-$CHARGEDIR/scripts/pipeline.sh -q "input_directory" "t1_filename" "output_directory" "dti_filename" "bvec_filename" "bval_filename"
+$CHARGEDIR/scripts/pipeline.sh -q -p j "input_directory" "t1_filename" "output_directory" "dti_filename" "bvec_filename" "bval_filename"
 ```
 
 ## input arguments
 
-| Argument | Description                                                                                                                               |
-|----------|-------------------------------------------------------------------------------------------------------------------------------------------|
-| -q       | Output QC page for subject                                                                                                                |
-| -f       | FreeSurfer license file. Must be a full path. If using singularity this option is required, and must be visible from inside the container |
-| indir    | Input directory containing T1 image, DTI data, bvec, and bval                                                                             |
-| t1       | Base file name of the T1 scan in nifty format. The full path is therefore $indir/$t1.                                                     |
-| outdir   | Output directory name. Must not exist.                                                                                                    |
-| dti      | DTI data in nifty format                                                                                                                  |
-| bvec     | bvec file                                                                                                                                 |
-| bval     | bval file                                                                                                                                 |
+| Argument  | Description                                                                                                                                                                                        |
+|-----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| -q        | Output QC page for subject                                                                                                                                                                         |
+| -f        | FreeSurfer license file. Must be a full path. If using singularity this option is required, and must be visible from inside the container                                                          |
+| -p        | Phase encoding direction. Either "i", "j", or "k" to indicate encoding in "x", "y", or "z", respectively. Mutually exclusive with acqp.txt and index.txt                                           |
+| indir     | Input directory containing T1 image, DTI data, bvec, and bval                                                                                                                                      |
+| t1        | Base file name of the T1 scan in nifty format. The full path is therefore $indir/$t1.                                                                                                              |
+| outdir    | Output directory name. Must not exist.                                                                                                                                                             |
+| dti       | DTI data in nifty format                                                                                                                                                                           |
+| bvec      | bvec file                                                                                                                                                                                          |
+| bval      | bval file                                                                                                                                                                                          |
+| acqp.txt  | acqp.txt file as described [here](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/eddy/Faq#How_do_I_know_what_to_put_into_my_--acqp_file). mutually exclusive with -p. If specified, index.txt is required  |
+| index.txt | index.txt file as described [here](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/eddy/Faq#How_do_I_know_what_to_put_into_my_--acqp_file). mutually exclusive with -p. If specified, acqp.txt is required  |
 
 ## Helper scripts
 
@@ -580,15 +594,16 @@ and then cropped using the parameters found previously.
 
 ## Process DTI data
 
-The DTI processing is based on the begining of the [PSMD](http://www.psmd-marker.com/index.html) pipeline
+The DTI processing is based on [Want et al 2017](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5318394/), which
+uses ANTs registration to correct for the susceptibility field. DTI processing was also influence by the begining of the [PSMD](http://www.psmd-marker.com/index.html) pipeline.
 
 DTI data is processed using FSL in the following steps
 1. Search bval file to find the index of the structural scan in the DTI data set (i.e., where bval = 0)
-2. Correct for eddy currents using FSL's eddy_correct, which linearly registers each image to the stuctural scan
-3. Run brain extraction on the eddy corrected image
-4. Run DTIFIT to calculate FA and MD
-5. Linearly register the DTI structural image to T1 space
-6. Transform FA and MD images to T1 space
+2. Use bet on the b0 image to calculate a brain mask
+3. Correct for eddy currents using FSL's eddy or eddy_correct
+4. Register the b0 image from the eddy correct output with the T1 space to remove the susceptibility field. Uses antsIntermodalityIntrasubject.sh
+5. Transform eddy corrected data to T1 space
+6. Run DTIFIT to calculate FA and MD
 
 ## Calculate statistics
 
@@ -618,3 +633,4 @@ normalizing the T1 intensity values).
 | FreeSurfer | http://surfer.nmr.mgh.harvard.edu/ (no overall paper) |
 | PSMD | E. Baykara et al., “A Novel Imaging Marker for Small Vessel Disease Based on Skeletonization of White Matter Tracts and Diffusion Histograms,” Annals of Neurology, vol. 80, no. 4, pp. 581–592, 2016. |
 | eddy | Jesper L. R. Andersson and Stamatios N. Sotiropoulos. An integrated approach to correction for off-resonance effects and subject movement in diffusion MR imaging. NeuroImage, 125:1063-1078, 2016. |
+| DTI processing | S. Wang, D. J. Peterson, J. C. Gatenby, W. Li, T. J. Grabowski, and T. M. Madhyastha, “Evaluation of Field Map and Nonlinear Registration Methods for Correction of Susceptibility Artifacts in Diffusion MRI,” Front Neuroinform, vol. 11, Feb. 2017. |

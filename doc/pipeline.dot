@@ -9,11 +9,15 @@ node [shape=diamond, color=red, fontcolor=red]
 "DTI image"
 "bvec"
 "bval"
+"acqp.txt"
+"index.txt"
 }
 subgraph Outputs {
 node[shape=rect, color=blue, fontcolor=blue];
 "T1 brain image" 
+"T1 brain mask" 
 "T1 cropped brain image" 
+"T1 cropped brain mask" 
 "T1 cropped image"
 "T1 skull image"
 "GM/WM partial volume images"
@@ -26,27 +30,31 @@ node[shape=rect, color=blue, fontcolor=blue];
 "Lobe map (native space)"
 "Brain mask (native space)"
 "NU corrected T1"
+"NU corrected T1 brain"
+"NU corrected T1 brain DTI res"
 "Eddy corrected image"
+"rotated bvec"
+"Eddy correction log"
+"Eddy b0 image"
 "DTI brain mask"
+"DTI image (T1 space)"
 "FA image"
 "MD image"
-"FA image (T1 space)"
-"MD image (T1 space)"
-"DTI to T1 linear transformation"
+"DTI to T1 transformation"
 "stats.txt"
 "stats_simple.txt"
 "Complex atlas"
 "Simple atlas"
-"Structural index"
-"DTI brain image"
-"DTI structural image"
+"DTI b0 image"
 }
 subgraph clustermaps{
 "T1 image" -> "Brain extraction (BET)" -> "T1 brain image"
 "Brain extraction (BET)" -> "T1 skull image"
+"Brain extraction (BET)" -> "T1 brain mask"
 "T1 skull image" -> "Crop parameters"
 "T1 image" -> "Crop parameters"
 {"T1 image", "Crop parameters"} -> "T1 crop" -> "T1 cropped image"
+{"T1 brain mask", "Crop parameters"} -> "T1 crop brain mask" -> "T1 cropped brain mask"
 {"T1 brain image", "Crop parameters"} -> "T1 crop brain" -> "T1 cropped brain image"
 "T1 cropped brain image" -> "Tissue classification (FAST)"
 "Tissue classification (FAST)" -> {"GM/WM partial volume images", "T1 bet-nonuniformity-corrected image"}
@@ -63,20 +71,29 @@ subgraph clustermaps{
 subgraph "clusterT1 data" {
 "T1 image" -> "Non-uniformity correction (mri_nu_correct.mni)" -> "NU crop" -> "NU corrected T1"
 "Crop parameters" -> "NU crop"
+{"NU corrected T1", "T1 cropped brain mask"} -> "Mask NU corrected" -> "NU corrected T1 brain"
 }
 
 subgraph "clusterDTI" {
-bval -> "Structural index"
-{"DTI image", "Structural index"} -> "Eddy correction (eddy_correct)" -> "Eddy corrected image"
-"Eddy corrected image" -> "DTI brain extraction (BET)" -> {"DTI brain mask", "DTI brain image"}
-{"Eddy corrected image", "bvec", "bval", "DTI brain mask"} -> dtifit -> {"FA image", "MD image"}
-{"DTI brain image", "Structural index"} -> "Extract struct image (fslroi)" -> "DTI structural image"
-{"DTI structural image", "T1 cropped brain image"} -> "DTI linear registration" -> "DTI to T1 linear transformation"
-{"DTI to T1 linear transformation", "FA image"} -> "Transform FA (applywarp)" -> "FA image (T1 space)"
-{"DTI to T1 linear transformation", "MD image"} -> "Transform MD (applywarp)" -> "MD image (T1 space)"
+bval -> "b0 index"
+{"DTI image", "b0 index"} ->  "Extract b0 image (fslroi)" -> "DTI b0 image"
+"DTI b0 image" -> "DTI calculate brain mask (BET)" -> "DTI brain mask"
+{"DTI image", "DTI brain mask", "bvec", "bval", "acqp.txt", "index.txt"} -> "Eddy correction (eddy)"
+{"DTI image", "b0 index"} -> "Eddy correction (eddy_correct)"
+subgraph "clusterEddy" {
+"Eddy correction (eddy)" -> {"Eddy corrected image", "rotated bvec"}
+"Eddy correction (eddy_correct)" -> {"Eddy corrected image", "Eddy correction log"}
+"Eddy correction log" -> "fdt_rotate_bvecs" -> "rotated bvec"
+}
+{"Eddy corrected image", "b0 index"} -> "Extract b0 image 2" -> "Eddy b0 image"
+"Eddy b0 image" -> "Extract spacing" -> "DTI spacing"
+{"NU corrected T1 brain", "DTI spacing"} -> "Resample NU corrected T1 brain" -> "NU corrected T1 brain DTI res"
+{"Eddy b0 image", "NU corrected T1 brain DTI res", "NU corrected T1 brain", "T1 cropped brain mask"} -> "DTI registration (antsIntermodalityIntersubject.sh)" -> "DTI to T1 transformation"
+{"DTI to T1 transformation", "Eddy corrected image"} -> "Transform DTI to T1 space" -> "DTI image (T1 space)"
+{"DTI image (T1 space)", "rotated bvec", "bval", "T1 cropped brain mask"} -> dtifit -> {"FA image", "MD image"}
 }
 
-{"NU corrected T1", "Complex atlas", "Brain mask (native space)", "FA image (T1 space)", "MD image (T1 space)"} -> "Calc stats" -> "stats.txt"
-{"NU corrected T1", "Simple atlas", "Brain mask (native space)", "FA image (T1 space)", "MD image (T1 space)"} -> "Calc stats" -> "stats_simple.txt"
+{"NU corrected T1", "Complex atlas", "Brain mask (native space)", "FA image", "MD image"} -> "Calc stats" -> "stats.txt"
+{"NU corrected T1", "Simple atlas", "Brain mask (native space)", "FA image", "MD image"} -> "Calc stats" -> "stats_simple.txt"
 
 }
