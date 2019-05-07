@@ -1,5 +1,3 @@
-[![https://www.singularity-hub.org/static/img/hosted-singularity--hub-%23e32929.svg](https://www.singularity-hub.org/static/img/hosted-singularity--hub-%23e32929.svg)](https://singularity-hub.org/collections/2586)
-
 # Overview and Quickstart
 
 This pipeline calculates average T1 intensity, FA, and MD for grey
@@ -7,7 +5,7 @@ matter and white matter and different lobes using FSL and
 FreeSurfer. It also calculates a T1 normalization factor based on a
 brain mask
 
-This pipeline may be installed using either a singularity container
+This pipeline may be installed using either singularity
 (prefered) or by installing the prerequisits manually. Using
 the pipeline with singularity is outlined in [Workflow 1](#Workflow-1-prefered), and
 using with the manual installation is outlined in [Workflow 2](#Workflow-2).
@@ -55,14 +53,14 @@ NB. The subject name cannot contain spaces.
 
 1. If singularity 2.5.2 or greater is not installed on your system then [install singularity](#Installing-Singularity)
 2. Please ensure that you agree to the terms in the [FSL license](https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense).
-3. Download the singularity container
+3. Build the singularity container from the [docker image](https://cloud.docker.com/u/pndni/repository/docker/pndni/charge_gm_wm_properties_pipeline/general)
    ```bash
-   singularity pull --name charge_container.simg shub://pndni/Charge_GM_WM_Properties_Pipeline:1.0.0-alpha8
+   singularity build charge_container.simg docker://pndni/Charge_GM_WM_Properties_Pipeline:1.0.0
    ```
-   which gets saved to `charge_container.simg`
+   which gets saved to `charge_container.simg`. (Ensure that `charge_container.simg` does not exist before running this command.)
 4. Clone this repository to acquire the helper files.
    ```bash
-   git clone --branch 1.0.0-alpha8 https://github.com/pndni/Charge_GM_WM_Properties_Pipeline.git
+   git clone --branch 1.0.0 https://github.com/pndni/Charge_GM_WM_Properties_Pipeline.git
    ```
 5. Copy `run_subject_container.sh` to the working directory, 
    ```bash
@@ -73,34 +71,33 @@ NB. The subject name cannot contain spaces.
 
    ```bash
    #!/bin/bash
-   
+
    set -e
    set -u
-   
+
    subject="$1"
-   
-   indir=/project/charge/subjects/$subject
-   outdir=/project/charge/Charge_GM_WM_Properties_Pipeline_out/$subject
-   logdir=/project/charge/Charge_GM_WM_Properties_Pipeline_out/logs
-   
+
+   ndir=/project/charge/subjects/$subject
+   utdir=/project/charge/Charge_GM_WM_Properties_Pipeline_out/$subject
+   ogdir=/project/charge/Charge_GM_WM_Properties_Pipeline_out/logs
+
    t1="$subject"_t1w.nii
    dti="$subject"_dti.nii
    bvec="$subject".bvec
    bval="$subject".bval
 
    if [[ "$outdir" =~ .*/.* ]]
-      then
-          outdirbase="${outdir%/*}"
-          outdirlast="${outdir##*/}"
+   then
+       outdirbase="${outdir%/*}"
+       outdirlast="${outdir##*/}"
    else
-          outdirbase="."
-          outdirlast="$outdir"
+       outdirbase="."
+       outdirlast="$outdir"
    fi
-   
+
    singularity run \
    --bind "$indir":/mnt/indir:ro \
    --bind "$outdirbase":/mnt/outdir \
-   --app charge \
    --cleanenv \
    charge_container.simg -q -f /mnt/outdir/license.txt \
    /mnt/indir \
@@ -123,8 +120,9 @@ NB. The subject name cannot contain spaces.
    t1=$(./findfile.sh $indir t1w.nii)
    ```
    will find a file ending with `t1w.nii` in `$indir`.
-6. Create  a file named `subject_list` which contains a list of each subject, separated by newlines. For the directory
-   structure above.
+6. Decide if you will be using the advanced eddy correction for DTI processing (see [below](#Eddy-Correction)).
+7. Create  a file named `subject_list` which contains a list of each subject, separated by newlines. For the directory
+   structure above:
    ```bash
    sub1
    sub2
@@ -134,12 +132,12 @@ NB. The subject name cannot contain spaces.
    ```bash
    ls /project/charge/subjects | grep -e '^sub' > subject_list
    ```
-7. Copy the FreeSurfer license file to `/project/charge/Charge_GM_WM_Properties_Pipeline_out/license.txt`
-   If you already have a freesurfer license, you can copy it with
+8. Copy the FreeSurfer license file to `/project/charge/Charge_GM_WM_Properties_Pipeline_out/license.txt`
+   If you already have a freesurfer installation with license, you can copy it with
    ```bash
    cp $FREESURFER_HOME/license.txt /project/charge/Charge_GM_WM_Properties_Pipeline_out/license.txt
    ```
-8. If you are using a computing cluster, go to 8.ii, otherwise, go to 8.i
+9. If you are using a computing cluster, go to 9.ii, otherwise, go to 9.i
     1. Copy parallel.sh to the working directory
        ```bash
        cp Charge_GM_WM_Properties_Pipeline/helper/parallel.sh ./
@@ -154,13 +152,13 @@ NB. The subject name cannot contain spaces.
        ```bash
        ./parallel.sh
        ```
-    2. If you are using a queuing system, you will need to set up a batch file specific to your system. An example
-       file for systems using Slurm is provided. Copy this file to your working directory
+    2. If you are using a computing cluster, you will need to set up a batch file specific to your system. An example
+       file for systems using Slurm is provided. If using slurm, copy this file to your working directory
        ```bash
        cp Charge_GM_WM_Properties_Pipeline/helper/slurm.sh ./
        ```
        and modify it for your system. (See the comments in the file).
-       If using slurm, run the pipeline with
+       Run the pipeline with
        ```bash
        sbatch slurm.sh
        ```
@@ -169,16 +167,17 @@ NB. The subject name cannot contain spaces.
 
 1. Install [FSL](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation)
 2. Install [FreeSurfer](http://www.freesurfer.net/fswiki/DownloadAndInstall)
-3. Clone this repository.
+3. Install [ANTs](http://stnava.github.io/ANTs/)
+4. Clone this repository.
    ```bash
-   git clone --branch 1.0.0-alpha8 https://github.com/pndni/Charge_GM_WM_Properties_Pipeline.git
+   git clone --branch 1.0.0 https://github.com/pndni/Charge_GM_WM_Properties_Pipeline.git
    ```
-4. Set `CHARGEDIR` environment variable
+5. Set `CHARGEDIR` environment variable
    to the location of the repository (using a full path).
    ```bash
    export CHARGEDIR=$PWD/Charge_GM_WM_Properties_Pipeline
    ```
-5. Copy `run_subject.sh` to the working directory, 
+6. Copy `run_subject.sh` to the working directory, 
    ```bash
    cp Charge_GM_WM_Properties_Pipeline/helper/run_subject.sh ./
    ```
@@ -227,8 +226,9 @@ NB. The subject name cannot contain spaces.
    t1=$(./findfile.sh $indir t1w.nii)
    ```
    will find a file ending with `t1w.nii` in `$indir`.
-6. Create  a file named `subject_list` which contains a list of each subject, separated by newlines. For the directory
-   structure above.
+7. Decide if you will be using the advanced eddy correction for DTI processing (see [below](#Eddy-Correction)).
+8. Create  a file named `subject_list` which contains a list of each subject, separated by newlines. For the directory
+   structure above:
    ```bash
    sub1
    sub2
@@ -238,7 +238,7 @@ NB. The subject name cannot contain spaces.
    ```bash
    ls /project/charge/subjects | grep -e '^sub' > subject_list
    ```
-7. If you are using a computing cluster, go to 7.ii, otherwise, go to 7.i
+9. If you are using a computing cluster, go to 9.ii, otherwise, go to 9.i
     1. Copy parallel.sh to the working directory
        ```bash
        cp Charge_GM_WM_Properties_Pipeline/helper/parallel.sh ./
@@ -254,15 +254,68 @@ NB. The subject name cannot contain spaces.
        ./parallel.sh
        ```
     2. If you are using a queuing system, you will need to set up a batch file specific to your system. An example
-       file for systems using Slurm is provided. Copy this file to your working directory
+       file for systems using Slurm is provided. If using slur, copy this file to your working directory
        ```bash
        cp Charge_GM_WM_Properties_Pipeline/helper/slurm.sh ./
        ```
        and modify it for your system. (See the comments in the file).
-       If using slurm, run the pipeline with
+       Run the pipeline with
        ```bash
        sbatch slurm.sh
        ```
+       
+# Eddy-Correction
+
+This pipeline can use two different types of eddy current correction when processing DTI data.
+The prefered technique is to use FSL's [eddy](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/eddy) command.
+However, this requires the phase encoding direction and acquisition time for each diffusion weighted image.
+Eddy excepts this information in the form of `acqp.txt` and `index.txt` files (see [here](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/eddy/Faq#How_do_I_know_what_to_put_into_my_--acqp_file) for more information). If you have these files
+you can pass them to the pipeline directly, and eddy will be used. For example, the last lines of
+`run_subject_containers.sh` might be:
+```bash
+   singularity run \
+   --bind "$indir":/mnt/indir:ro \
+   --bind "$outdirbase":/mnt/outdir \
+   --cleanenv \
+   charge_container.simg -q -f /mnt/outdir/license.txt \
+   /mnt/indir \
+   "$t1" \
+   /mnt/outdir/"$outdirlast" \
+   "$dti" \
+   "$bvec" \
+   "$bval" \
+   "acqp.txt" \
+   "index.txt" \
+   > "$logdir"/"$subject"_stdout.log \
+   2> "$logdir"/"$subject"_stderr.log
+   ```
+if `acqp.txt` and `index.txt` are in `$indir`. 
+
+However, in most cases each diffusion weighted image uses the same phase encoding direction and acquisition time,
+in which case the acquisition time is [irrelevent](https://www.jiscmail.ac.uk/cgi-bin/webadmin?A2=FSL;aee0425b.1708).
+For this case, you can simply tell the pipeline whether the phase encoding is in the x, y, or z direction. This
+is done by passing i, j, or k to the `-p` argument, respectively. For example, if the encoding is in the y direction:
+```bash
+   singularity run \
+   --bind "$indir":/mnt/indir:ro \
+   --bind "$outdirbase":/mnt/outdir \
+   --cleanenv \
+   charge_container.simg -q -f /mnt/outdir/license.txt \
+   -p j \
+   /mnt/indir \
+   "$t1" \
+   /mnt/outdir/"$outdirlast" \
+   "$dti" \
+   "$bvec" \
+   "$bval" \
+   "acqp.txt" \
+   "index.txt" \
+   > "$logdir"/"$subject"_stdout.log \
+   2> "$logdir"/"$subject"_stderr.log
+   ```
+   
+If neither `acqp.txt` and `index.txt` or `-p` is passed, then the pipeline will use the older
+`eddy_correct` method.
 
 # Outputs
 
@@ -564,3 +617,4 @@ normalizing the T1 intensity values).
 | FNIRT | Andersson JLR, Jenkinson M, Smith S (2010) Non-linear registration, aka spatial normalisation. FMRIB technical report TR07JA2 |
 | FreeSurfer | http://surfer.nmr.mgh.harvard.edu/ (no overall paper) |
 | PSMD | E. Baykara et al., “A Novel Imaging Marker for Small Vessel Disease Based on Skeletonization of White Matter Tracts and Diffusion Histograms,” Annals of Neurology, vol. 80, no. 4, pp. 581–592, 2016. |
+| eddy | Jesper L. R. Andersson and Stamatios N. Sotiropoulos. An integrated approach to correction for off-resonance effects and subject movement in diffusion MR imaging. NeuroImage, 125:1063-1078, 2016. |
