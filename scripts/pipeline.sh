@@ -654,7 +654,7 @@ then
     mkdir "$dtiregdir"
     dtispacing=$(PrintHeader "$eddycorb0" 1 | tr 'x' ' ')
     logcmd resampleforantslog ResampleImageBySpacing 3 "$nucorcbrain" "$nucorcbrainrs" $dtispacing
-    logcmd resampleforants2log ResampleImageBySpacing 3 "$t1betmaskc" "$t1betmaskcrs" $dtispacing 1 0 1
+    logcmd resampleforants2log ResampleImageBySpacing 3 "$t1betmaskc" "$t1betmaskcrs" $dtispacing 0 0 1
     qcrun fade "NU corrected brain" "NU corrected brain dti resolution" "$nucorcbrain" "$nucorcbrainrs" "$qcoutdir" --logprefix logs/resampleforantslog
     #  -x is required but the script exists before it is used
     logcmd antsreglog antsIntermodalityIntrasubject.sh -d 3 -r "$nucorcbrainrs" -i "$eddycorb0" -t 2 -x "$t1betmaskcrs" -o "$dti2t1"
