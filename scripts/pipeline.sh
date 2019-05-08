@@ -374,9 +374,6 @@ then
 fi
 
 # ensure brain mask is not clipped
-# this check doesn't make a lot of sense now that I've changed how the cropping
-# works, but I'm leaving it in because it should still be true, and if this check
-# fails something has gone horribly wrong
 logcmd checkedgeslog fslpython "$CHARGEDIR"/utils/check_edges.py "$brainmask_native"
 
 # MINC intensity correction
