@@ -18,6 +18,7 @@ node[shape=rect, color=blue, fontcolor=blue];
 "T1 brain mask" 
 "T1 cropped brain image" 
 "T1 cropped brain mask" 
+"T1 cropped brain mask DTI res" 
 "T1 cropped image"
 "T1 skull image"
 "GM/WM partial volume images"
@@ -37,9 +38,11 @@ node[shape=rect, color=blue, fontcolor=blue];
 "Eddy correction log"
 "Eddy b0 image"
 "DTI brain mask"
-"DTI image (T1 space)"
+"DTI image (DTI res T1 space)"
 "FA image"
 "MD image"
+"FA image DTI res"
+"MD image DTI res"
 "DTI to T1 transformation"
 "stats.txt"
 "stats_simple.txt"
@@ -88,9 +91,12 @@ subgraph "clusterEddy" {
 {"Eddy corrected image", "b0 index"} -> "Extract b0 image 2" -> "Eddy b0 image"
 "Eddy b0 image" -> "Extract spacing" -> "DTI spacing"
 {"NU corrected T1 brain", "DTI spacing"} -> "Resample NU corrected T1 brain" -> "NU corrected T1 brain DTI res"
-{"Eddy b0 image", "NU corrected T1 brain DTI res", "NU corrected T1 brain", "T1 cropped brain mask"} -> "DTI registration (antsIntermodalityIntersubject.sh)" -> "DTI to T1 transformation"
-{"DTI to T1 transformation", "Eddy corrected image"} -> "Transform DTI to T1 space" -> "DTI image (T1 space)"
-{"DTI image (T1 space)", "rotated bvec", "bval", "T1 cropped brain mask"} -> dtifit -> {"FA image", "MD image"}
+{"T1 cropped brain mask", "DTI spacing"} -> "Resample NU corrected T1 brain mask" -> "T1 cropped brain mask DTI res"
+{"Eddy b0 image", "NU corrected T1 brain DTI res"} -> "DTI registration (antsIntermodalityIntersubject.sh)" -> "DTI to T1 transformation"
+{"DTI to T1 transformation", "Eddy corrected image"} -> "Transform DTI to DTI res T1 space" -> "DTI image (DTI res T1 space)"
+{"DTI image (DTI res T1 space)", "rotated bvec", "bval", "T1 cropped brain mask DTI res"} -> dtifit -> {"FA image DTI res", "MD image DTI res"}
+{"MD image DTI res"} -> "Upsample MD to T1 space" -> {"MD image"}
+{"FA image DTI res"} -> "Upsample FA to T1 space" -> {"FA image"}
 }
 
 {"NU corrected T1", "Complex atlas", "Brain mask (native space)", "FA image", "MD image"} -> "Calc stats" -> "stats.txt"
