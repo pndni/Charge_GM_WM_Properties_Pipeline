@@ -296,8 +296,8 @@ if `acqp.txt` and `index.txt` are in `$indir`.
 
 However, in most cases each diffusion weighted image uses the same phase encoding direction and acquisition time,
 in which case the acquisition time is [irrelevent](https://www.jiscmail.ac.uk/cgi-bin/webadmin?A2=FSL;aee0425b.1708).
-For these cases, you can simply tell the pipeline whether the phase encoding is in the x, y, or z direction. This
-is done by passing i, j, or k to the `-p` argument, respectively. For example, if the encoding is in the y direction:
+For these cases, you can simply tell the pipeline whether the phase encoding is in the x or y direction. This
+is done by passing i or j to the `-p` argument, respectively. For example, if the encoding is in the y direction:
 ```bash
    singularity run \
    --bind "$indir":/mnt/indir:ro \
@@ -316,6 +316,8 @@ is done by passing i, j, or k to the `-p` argument, respectively. For example, i
    > "$logdir"/"$subject"_stdout.log \
    2> "$logdir"/"$subject"_stderr.log
    ```
+NB. that the encoding is specified in storage coordinates. See [here](https://www.jiscmail.ac.uk/cgi-bin/webadmin?A2=FSL;b2c5f7a.1905)
+for more details.
    
 If neither `acqp.txt` and `index.txt` or `-p` is passed, then the pipeline will use the older
 `eddy_correct` method instead.
