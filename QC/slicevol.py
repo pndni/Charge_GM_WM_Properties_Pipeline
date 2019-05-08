@@ -116,7 +116,7 @@ def create_slice(bases, labels, outfile, slicedim=2, slicenums=None, isotropic=F
     for label in labels:
         imglist.append(_loadimage(label, slicedim, slicenums, label=True))
     for imgtmp in imglist[1:]:
-        if not np.allclose(imglist[0].affine, imgtmp.affine):
+        if not np.allclose(imglist[0].affine, imgtmp.affine, atol=1e-6):
             raise RuntimeError('All images must have the same affine transformation')
         if imglist[0].imgs.shape != imgtmp.imgs.shape:
             raise RuntimeError('All images must have the same shape')
