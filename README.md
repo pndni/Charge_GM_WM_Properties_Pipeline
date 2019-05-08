@@ -436,12 +436,14 @@ cp Charge_GM_WM_Properties_Pipeline/scripts/combine_data.sh ./
 To combine the `stats.txt`
 files, run
 ```bash
-./combine_data.sh stats < subject_list > stats_combined.txt
+./combine_data.sh stats < subject_list
 ```
-and to combine the `stats_simple` files, run
+which will produce `stats_combined.txt`.
+To combine the `stats_simple` files, run
 ```bash
-./combine_data.sh stats_simple < subject_list > stats_simple_combined.txt
+./combine_data.sh stats_simple < subject_list
 ```
+which will produce `stats_simple_combined.txt`.
 The combine data script will check for the presence of `status.txt` in each subject's
 output directory. If the file is found, it copies that subjects data into the
 combined output file. Otherwise, that subject is skipped.
