@@ -4,7 +4,7 @@ set -e  # exit on error
 set -u  # exit on undefined variable
 \unalias -a  # remove all aliases (e.g. some systems alias 'cp' to 'cp -i')
 
-version=dev
+version=1.0.0-alpha12
 
 error() {
   >&2 echo $1
@@ -374,6 +374,9 @@ then
 fi
 
 # ensure brain mask is not clipped
+# this check doesn't make a lot of sense now that I've changed how the cropping
+# works, but I'm leaving it in because it should still be true, and if this check
+# fails something has gone horribly wrong
 logcmd checkedgeslog fslpython "$CHARGEDIR"/utils/check_edges.py "$brainmask_native"
 
 # MINC intensity correction
@@ -529,9 +532,12 @@ echo "# FSL Version: $fslversion"                                         >> "$s
 echo "# $antsversion"                                                     >> "$statsfile"
 echo "# Input directory: $indir"                                          >> "$statsfile"
 echo "# T1 filename: $t1"                                                 >> "$statsfile"
+if [ ! -z "$rundti" ]
+then
 echo "# DTI filename: $dti"                                               >> "$statsfile"
 echo "# bvec: $bvec"                                                      >> "$statsfile"
 echo "# bval: $bval"                                                      >> "$statsfile"
+fi
 echo "# Output directory: $outdir"                                         >> "$statsfile"
 echo "# useeddy: $useeddy"                                                >> "$statsfile"
 echo "# $(date)"                                                          >> "$statsfile"
@@ -550,9 +556,12 @@ echo "# FSL Version: $fslversion"                                         >> "$s
 echo "# $antsversion"                                                     >> "$statsfile_simple"
 echo "# Input directory: $indir"                                          >> "$statsfile_simple"
 echo "# T1 filename: $t1"                                                 >> "$statsfile_simple"
+if [ ! -z "$rundti" ]
+then
 echo "# DTI filename: $dti"                                               >> "$statsfile_simple"
 echo "# bvec: $bvec"                                                      >> "$statsfile_simple"
 echo "# bval: $bval"                                                      >> "$statsfile_simple"
+fi
 echo "# Output directory: $outdir"                                         >> "$statsfile_simple"
 echo "# useeddy: $useeddy"                                                >> "$statsfile_simple"
 echo "# $(date)"                                                          >> "$statsfile_simple"
