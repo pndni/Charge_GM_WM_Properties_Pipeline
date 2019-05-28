@@ -50,7 +50,8 @@ mkdir logs
 NB. The subject name cannot contain spaces.
 
 NB. We assume that your data is oriented correctly for FSL. See [here](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/Orientation%20Explained)
-for more information.
+for more information. Registration works best when standard orientation is used (such as that produced by `fslreorient2std`). If you
+reoriented your data ensure your bvec data is updated as appropriate.
 
 ## Workflow 1 (prefered)
 
