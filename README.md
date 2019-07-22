@@ -59,7 +59,7 @@ reoriented your data ensure your bvec data is updated as appropriate.
 2. Please ensure that you agree to the terms in the [FSL license](https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense).
 3. Build the singularity container from the [docker image](https://cloud.docker.com/u/pndni/repository/docker/pndni/charge_gm_wm_properties_pipeline/general)
    ```bash
-   singularity build charge_container.simg docker://pndni/Charge_GM_WM_Properties_Pipeline:1.0.0
+   singularity build charge_container.simg docker://pndni/charge_gm_wm_properties_pipeline:1.0.0
    ```
    which gets saved to `charge_container.simg`. (Ensure that `charge_container.simg` does not exist before running this command.)
 4. Clone this repository to acquire the helper files.
