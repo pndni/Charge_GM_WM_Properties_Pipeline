@@ -59,12 +59,12 @@ reoriented your data ensure your bvec data is updated as appropriate.
 2. Please ensure that you agree to the terms in the [FSL license](https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense).
 3. Build the singularity container from the [docker image](https://cloud.docker.com/u/pndni/repository/docker/pndni/charge_gm_wm_properties_pipeline/general)
    ```bash
-   singularity build charge_container.simg docker://pndni/charge_gm_wm_properties_pipeline:1.0.0
+   singularity build charge_container.simg docker://pndni/charge_gm_wm_properties_pipeline:1.0.1
    ```
    which gets saved to `charge_container.simg`. (Ensure that `charge_container.simg` does not exist before running this command.)
 4. Clone this repository to acquire the helper files.
    ```bash
-   git clone --branch 1.0.0 https://github.com/pndni/Charge_GM_WM_Properties_Pipeline.git
+   git clone --branch 1.0.1 https://github.com/pndni/Charge_GM_WM_Properties_Pipeline.git
    ```
 5. Copy `run_subject_container.sh` to the working directory, 
    ```bash
@@ -174,7 +174,7 @@ reoriented your data ensure your bvec data is updated as appropriate.
 3. Install [ANTs](http://stnava.github.io/ANTs/)
 4. Clone this repository.
    ```bash
-   git clone --branch 1.0.0 https://github.com/pndni/Charge_GM_WM_Properties_Pipeline.git
+   git clone --branch 1.0.1 https://github.com/pndni/Charge_GM_WM_Properties_Pipeline.git
    ```
 5. Set `CHARGEDIR` environment variable
    to the location of the repository (using a full path).
@@ -339,7 +339,7 @@ occipital lobes. For example
 
 ```
 # Data calculated using pipeline.sh with sha256 has dabdbd33522f7789e9dc274afc0a7b9bacc8c02b890a396b32dc171dd0d5aaf0  /scif/apps/charge/scripts/pipeline.sh
-# Version: 1.0.0
+# Version: 1.0.1
 # FreeSurfer Version: freesurfer-Linux-centos6_x86_64-stable-pub-v6.0.1-f53a55a
 # FSL Version: 6.0.1
 # ANTs Version: 2.2.0.dev150-g6f403
