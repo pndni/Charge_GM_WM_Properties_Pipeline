@@ -726,7 +726,7 @@ then
 else
     echo "stderr output does not indicate error" > status.txt
 fi
-if [ $(wc -l < logs/antsreglog_stderr.txt) -ne 17 ]
+if [ -n "$rundti" ] && [ $(wc -l < logs/antsreglog_stderr.txt) -ne 17 ]
 then
     echo "ERROR antsreglog_stderr does not have expected number of lines (17)." >> status.txt
     ERROR=1
