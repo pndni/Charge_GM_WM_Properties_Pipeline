@@ -57,7 +57,7 @@ reoriented your data ensure your bvec data is updated as appropriate.
 
 1. If singularity 2.5.2 or greater is not installed on your system then [install singularity](#Installing-Singularity)
 2. Please ensure that you agree to the terms in the [FSL license](https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense).
-3. Build the singularity container from the [docker image](https://cloud.docker.com/u/pndni/repository/docker/pndni/charge_gm_wm_properties_pipeline/general)
+3. Build the singularity container from the [docker image](https://hub.docker.com/r/pndni/charge_gm_wm_properties_pipeline)
    ```bash
    singularity build charge_container.simg docker://pndni/charge_gm_wm_properties_pipeline:1.0.1
    ```
