@@ -78,5 +78,12 @@ COPY QC /opt/charge/QC/
 ENTRYPOINT ["/opt/charge/scripts/pipeline.sh"]
 
 LABEL Maintainer="Steven Tilley"
-LABEL Version=1.0.1
 
+LABEL org.opencontainers.image.title=Charge_GM_WM_Properties_Pipeline \
+      org.opencontainers.image.vcs-url=https://github.com/pndni/Charge_GM_WM_Properties_Pipeline \
+      org.opencontainers.image.licence=MIT \
+      org.label-schema.build-date="" \
+      org.label-schema.license="" \
+      org.label-schema.name="" \
+      org.label-schema.schema-version="" \
+      org.label-schema.vendor=""

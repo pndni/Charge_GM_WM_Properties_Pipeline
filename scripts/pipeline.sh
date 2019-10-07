@@ -4,7 +4,7 @@ set -e  # exit on error
 set -u  # exit on undefined variable
 \unalias -a  # remove all aliases (e.g. some systems alias 'cp' to 'cp -i')
 
-version=1.0.1
+version=1.0.1-nucor_bet_reorder
 
 error() {
   >&2 echo $1
