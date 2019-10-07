@@ -231,7 +231,6 @@ nuoutdir=t1_nucor_out
 nucor="$nuoutdir"/nu$ext
 nucorcskull="$nuoutdir"/nu_cropped_skull$ext
 nucorc="$nuoutdir"/nu_cropped$ext
-nucorcbrain="$nuoutdir"/nu_cropped_brain$ext
 
 statsdir=stats_out
 statsfile="$statsdir"/stats.txt
@@ -309,8 +308,8 @@ qcrun static "BET mask crop 2" "$t1betmaskc" "$qcoutdir"
 
 logcmd nucroplog fslroi "$nucor" "$nucorcskull" $xmin $xsize $ymin $ysize $zmin $zsize
 logcmd nucroplog2 fslroi "$nucorcskull" "$nucorc" $xmin2 $xsize2 $ymin2 $ysize2 $zmin2 $zsize2
-logcmd numasklog fslmaths -dt double "$nucorc" -mas "$t1betmaskc" "$nucorcbrain" -odt double
-qcrun fade "NU corrected T1" "NU corrected T1 brain" "$nucorc" "$nucorcbrain" "$qcoutdir" --logprefix=logs/numasklog
+# logcmd numasklog fslmaths -dt double "$nucorc" -mas "$t1betmaskc" "$nucorcbrain" -odt double
+# qcrun fade "NU corrected T1" "NU corrected T1 brain" "$nucorc" "$nucorcbrain" "$qcoutdir" --logprefix=logs/numasklog
 
 # Segmentation
 #    Segment into white and grey matter. Simultaneously perform bias
@@ -347,7 +346,7 @@ qcrun logs fnirt logs/fnirtlog "$qcoutdir"
 
 
 logcmd t1_2_ref_log applywarp --ref="$mniref" --in="$t1betcorc" --out="$t1betcorref" --warp="$s2rwarp"
-qcrun fade "NU corrected T1 in ref coords" "MNI reference" "$t1betcorref" "$mniref" "$qcoutdir" --logprefix=logs/t1_2_ref_log 
+qcrun fade "Corrected T1 in ref coords" "MNI reference" "$t1betcorref" "$mniref" "$qcoutdir" --logprefix=logs/t1_2_ref_log 
 
 # Calculate inverse transformation
 
@@ -600,7 +599,7 @@ then
     eddycorsplitdir="$eddycordir"/split
     
     dtiregdir=dti_reg_out
-    nucorcbrainrs="$dtiregdir"/nu_cropped_brain_resampled$ext
+    t1betimagecrs="$dtiregdir"/t1_bet_resampled$ext
     t1betmaskcrs="$dtiregdir"/t1_mask_cropped_resampled$ext
     # structforreg="$dtiregdir"/dti_struct_for_reg$ext
     dti2t1="$dtiregdir"/dti2struct
@@ -661,11 +660,11 @@ then
     
     mkdir "$dtiregdir"
     dtispacing=$(PrintHeader "$eddycorb0" 1 | tr 'x' ' ')
-    logcmd resampleforantslog ResampleImageBySpacing 3 "$nucorcbrain" "$nucorcbrainrs" $dtispacing
+    logcmd resampleforantslog ResampleImageBySpacing 3 "$t1betimagec" "$t1betimagecrs" $dtispacing
     logcmd resampleforants2log ResampleImageBySpacing 3 "$t1betmaskc" "$t1betmaskcrs" $dtispacing 0 0 1
-    qcrun fade "NU corrected brain" "NU corrected brain dti resolution" "$nucorcbrain" "$nucorcbrainrs" "$qcoutdir" --logprefix logs/resampleforantslog
+    qcrun fade "NU Corrected brain" "NU Corrected brain dti resolution" "$t1betimagec" "$t1betimagecrs" "$qcoutdir" --logprefix logs/resampleforantslog
     #  -x is required but the script exists before it is used
-    logcmd antsreglog antsIntermodalityIntrasubject.sh -d 3 -r "$nucorcbrainrs" -i "$eddycorb0" -t 2 -x "$t1betmaskcrs" -o "$dti2t1"
+    logcmd antsreglog antsIntermodalityIntrasubject.sh -d 3 -r "$t1betimagecrs" -i "$eddycorb0" -t 2 -x "$t1betmaskcrs" -o "$dti2t1"
     qcrun logs "Ants DTI to T1" logs/antsreglog "$qcoutdir"
 
     mkdir "$dtiregsplitdir"
@@ -676,15 +675,15 @@ then
         indfmt=$(printf "%04d" $i)
         inreg="$eddycorsplitdir"/$indfmt$ext
         outreg="$dtiregsplitdir"/$indfmt$ext
-        logcmd antsapply${indfmt}log antsApplyTransforms -d 3 -r "$nucorcbrainrs" -i "$inreg" -t "$dti2t1_warp" -t "$dti2t1_aff" -o "$outreg" -n Linear
+        logcmd antsapply${indfmt}log antsApplyTransforms -d 3 -r "$t1betimagecrs" -i "$inreg" -t "$dti2t1_warp" -t "$dti2t1_aff" -o "$outreg" -n Linear
         tojoin[$i]="$outreg"
         cat logs/antsapply${indfmt}log_stdout.txt >> logs/antsapplylog_stdout.txt
         cat logs/antsapply${indfmt}log_stderr.txt >> logs/antsapplylog_stderr.txt
     done
     logcmd fslmergelog fslmerge -t "$dti_native_lowres" "${tojoin[@]}"
     struct_native_lowres="$dtiregsplitdir"/$(printf "%04d" $refinds)$ext
-    logcmd antsapplystructuslog antsApplyTransforms -d 3 -r "$nucorcbrain" -i "$struct_native_lowres" -o "$struct_native" -n Linear
-    qcrun fade "T1" "DTI b0 in T1 coords" "$nucorc" "$struct_native" "$qcoutdir" --logprefix logs/antsapplylog
+    logcmd antsapplystructuslog antsApplyTransforms -d 3 -r "$t1betimagec" -i "$struct_native_lowres" -o "$struct_native" -n Linear
+    qcrun fade "NU Corrected T1" "DTI b0 in T1 coords" "$nucorc" "$struct_native" "$qcoutdir" --logprefix logs/antsapplylog
 
     # DTIFIT
     
@@ -692,13 +691,13 @@ then
     mkdir "$dtifitdir"
     
     logcmd dtifitlog dtifit --data="$dti_native_lowres" --out="$dtifitbase" --mask="$t1betmaskcrs" --bvecs="$bvecrot" --bvals="$bval"
-    logcmd antsapplymduslog antsApplyTransforms -d 3 -r "$nucorcbrain" -i "$dtimd_native_lowres" -o "$dtimd_native" -n Linear
-    logcmd antsapplyfauslog antsApplyTransforms -d 3 -r "$nucorcbrain" -i "$dtifa_native_lowres" -o "$dtifa_native" -n Linear
+    logcmd antsapplymduslog antsApplyTransforms -d 3 -r "$t1betimagec" -i "$dtimd_native_lowres" -o "$dtimd_native" -n Linear
+    logcmd antsapplyfauslog antsApplyTransforms -d 3 -r "$t1betimagec" -i "$dtifa_native_lowres" -o "$dtifa_native" -n Linear
     qcrun logs "DTI Fit" logs/dtifitlog "$qcoutdir"
     qcrun static "DTI Fit: FA" "$dtifa_native" "$qcoutdir"
     qcrun static "DTI Fit: MD" "$dtimd_native" "$qcoutdir"
     
-    qcrun fade "T1" "MD" "$nucorc" "$dtimd_native" "$qcoutdir"
+    qcrun fade "NU Corrected T1" "MD" "$nucorc" "$dtimd_native" "$qcoutdir"
     qcrun static "Brain mask over FA" "$dtifa_native" "$qcoutdir" --labelfile "$brainmask_native"
     qcrun static "Brain mask over MD" "$dtimd_native" "$qcoutdir" --labelfile "$brainmask_native"
     qcrun static "Lobe mask over FA" "$dtifa_native" "$qcoutdir" --labelfile "$atlas_native"

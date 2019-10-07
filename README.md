@@ -545,6 +545,7 @@ The main steps in this pipeline are
 The tissue type (CSF, grey matter, or white matter) is calculated
 using FSL tools and the T1 image in the following steps.
 
+1. Correct for non-uniformities using the N3 algorithm included with FreeSurfer
 1. Extract brain (BET) and crop image to reduce image size
 2. Classify tissues using FAST (voxels are considered WM or GM if FAST estimates that voxel as being 90% that tissue. i.e., the partial volume
 outputs are thresholded at 0.9)
@@ -596,11 +597,6 @@ The complex atlas contains 28 labels
 | 27.   | Sub-cortex            | right       | white  |
 | 28.   | Brainstem             | right       | white  |
 
-
-## Process T1 data
-
-The T1 data is non-uniformity corrected using the N3 algorithm included with FreeSurfer
-and then cropped using the parameters found previously.
 
 ## Process DTI data
 
