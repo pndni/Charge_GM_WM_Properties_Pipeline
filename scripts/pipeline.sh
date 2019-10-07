@@ -260,13 +260,20 @@ croppad1=40  # amount to pad image when cropping to skull estimate
 croppad2=10  # amount to pad image when cropping to T1
 t1tissuefrac=0.9  # fraction of voxel that must be a tissue type for that voxel to be included in the tissue mask
 
+# MINC intensity correction
+
+
+mkdir "$nuoutdir"
+logcmd nucorrectlog mri_nu_correct.mni --i "$t1" --o "$nucor"
+qcrun fade "T1" "NU corrected T1" "$t1" "$nucor" "$qcoutdir" --logprefix=logs/nucorrectlog
+
 # BET
 #    Extract the brain from the image
 
 # Do bet
 mkdir "$t1betdir"
-logcmd betlog bet "$t1" "$t1betimage" -f "$t1bet_f" -R -s -m
-qcrun fade "T1" "BET" "$t1" "$t1betimage" "$qcoutdir" --logprefix logs/betlog
+logcmd betlog bet "$nucor" "$t1betimage" -f "$t1bet_f" -R -s -m
+qcrun fade "NU corrected T1" "BET" "$nucor" "$t1betimage" "$qcoutdir" --logprefix logs/betlog
 
 
 # Crop image
@@ -299,6 +306,11 @@ logcmd betcroplog2 fslroi "$t1betimagecskull" "$t1betimagec" $xmin2 $xsize2 $ymi
 qcrun static "BET crop 2" "$t1betimagec" "$qcoutdir"
 logcmd betmaskcroplog2 fslroi "$t1betmaskcskull" "$t1betmaskc" $xmin2 $xsize2 $ymin2 $ysize2 $zmin2 $zsize2
 qcrun static "BET mask crop 2" "$t1betmaskc" "$qcoutdir"
+
+logcmd nucroplog fslroi "$nucor" "$nucorcskull" $xmin $xsize $ymin $ysize $zmin $zsize
+logcmd nucroplog2 fslroi "$nucorcskull" "$nucorc" $xmin2 $xsize2 $ymin2 $ysize2 $zmin2 $zsize2
+logcmd numasklog fslmaths -dt double "$nucorc" -mas "$t1betmaskc" "$nucorcbrain" -odt double
+qcrun fade "NU corrected T1" "NU corrected T1 brain" "$nucorc" "$nucorcbrain" "$qcoutdir" --logprefix=logs/numasklog
 
 # Segmentation
 #    Segment into white and grey matter. Simultaneously perform bias
@@ -335,7 +347,7 @@ qcrun logs fnirt logs/fnirtlog "$qcoutdir"
 
 
 logcmd t1_2_ref_log applywarp --ref="$mniref" --in="$t1betcorc" --out="$t1betcorref" --warp="$s2rwarp"
-qcrun fade "T1 in ref coords" "MNI reference" "$t1betcorref" "$mniref" "$qcoutdir" --logprefix=logs/t1_2_ref_log 
+qcrun fade "NU corrected T1 in ref coords" "MNI reference" "$t1betcorref" "$mniref" "$qcoutdir" --logprefix=logs/t1_2_ref_log 
 
 # Calculate inverse transformation
 
@@ -379,16 +391,6 @@ fi
 # fails something has gone horribly wrong
 logcmd checkedgeslog fslpython "$CHARGEDIR"/utils/check_edges.py "$brainmask_native"
 
-# MINC intensity correction
-
-
-mkdir "$nuoutdir"
-logcmd nucorrectlog mri_nu_correct.mni --i "$t1" --o "$nucor"
-logcmd nucroplog fslroi "$nucor" "$nucorcskull" $xmin $xsize $ymin $ysize $zmin $zsize
-logcmd nucroplog2 fslroi "$nucorcskull" "$nucorc" $xmin2 $xsize2 $ymin2 $ysize2 $zmin2 $zsize2
-qcrun fade "T1" "NU corrected T1" "$t1c" "$nucorc" "$qcoutdir" --logprefix=logs/nucorrectlog
-logcmd numasklog fslmaths -dt double "$nucorc" -mas "$t1betmaskc" "$nucorcbrain" -odt double
-qcrun fade "NU corrected T1" "NU corrected T1 brain" "$nucorc" "$nucorcbrain" "$qcoutdir" --logprefix=logs/numasklog
 
 # Calculate intensity values
 
