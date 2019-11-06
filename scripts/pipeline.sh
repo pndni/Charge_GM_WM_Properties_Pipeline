@@ -216,8 +216,8 @@ t1betcorc="${t1fastout}"_restore$ext
 t1segc="${t1fastout}"_seg$ext
 gmpvec=${t1fastout}_pve_${gm}$ext
 wmpvec=${t1fastout}_pve_${wm}$ext
-gmmask2=${t1fastout}_seg_${gm}_pv$ext
-wmmask2=${t1fastout}_seg_${wm}_pv$ext
+gmmask2=${t1fastout}_seg_${gm}$ext
+wmmask2=${t1fastout}_seg_${wm}$ext
 
 t1regdir=t1_reg_out
 s2raff="$t1regdir"/struct2mni_affine.mat # affine matrix from the T1 image to the MNI reference
@@ -398,8 +398,8 @@ mkdir "$statsdir"
 
 
 # create tissue masks by threshold partial volume images
-fslmaths $gmpvec -thr $t1tissuefrac -bin $gmmask2
-fslmaths $wmpvec -thr $t1tissuefrac -bin $wmmask2
+# fslmaths $gmpvec -thr $t1tissuefrac -bin $gmmask2
+# fslmaths $wmpvec -thr $t1tissuefrac -bin $wmmask2
 
 # Construct combined atlas by offsetting wm values by 14
 
