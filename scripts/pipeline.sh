@@ -31,13 +31,13 @@ do
     case $name in
 	q) qc=1
 	   ;;
-  c) fnirtconf="$OPTARG"
-  	 ;;
+    c) fnirtconf="$OPTARG"
+       ;;
 	f) export FS_LICENSE="$OPTARG"
 	   ;;
-  p) phase_enc="$OPTARG"
-     useeddy=1
-     ;;
+    p) phase_enc="$OPTARG"
+       useeddy=1
+       ;;
 	?) >&2 echo $usage
 	   exit 2
 	   ;;
