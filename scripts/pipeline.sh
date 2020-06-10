@@ -4,7 +4,7 @@ set -e  # exit on error
 set -u  # exit on undefined variable
 \unalias -a  # remove all aliases (e.g. some systems alias 'cp' to 'cp -i')
 
-version=1.0.0-alpha12
+version=1.0.2-alpha1
 
 error() {
   >&2 echo $1
@@ -20,21 +20,24 @@ fsversion=$(cat $FREESURFER_HOME/build-stamp.txt)
 fslversion=$(cat $FSLDIR/etc/fslversion)
 antsversion=$(antsRegistration --version | head -n 1)
 
-usage="Usage: pipeline.sh [-q] [-f freesurfer_license] [-p phase_encoding_direction] indir t1 outdir [dti bvec bval [acqp index]]"
+usage="Usage: pipeline.sh [-q] [-c fnirt_config] [-f freesurfer_license] [-p phase_encoding_direction] indir t1 outdir [dti bvec bval [acqp index]]"
 
 qc=0
 useeddy=0
 phase_enc=""
-while getopts qf:p: name
+fnirtconf="${FSLDIR}"/etc/flirtsch/T1_2_MNI152_2mm.cnf
+while getopts qc:f:p: name
 do
     case $name in
 	q) qc=1
 	   ;;
+    c) fnirtconf="$OPTARG"
+       ;;
 	f) export FS_LICENSE="$OPTARG"
 	   ;;
-        p) phase_enc="$OPTARG"
-           useeddy=1
-           ;;
+    p) phase_enc="$OPTARG"
+       useeddy=1
+       ;;
 	?) >&2 echo $usage
 	   exit 2
 	   ;;
@@ -193,7 +196,6 @@ then
        error "MNI152_T1_2mm not found"
     fi
 fi
-fnirtconf="${FSLDIR}"/etc/flirtsch/T1_2_MNI152_2mm.cnf
 
 csf=0
 gm=1
@@ -311,7 +313,7 @@ qcrun static "FAST classification" "$t1betcorc" "$qcoutdir" --label "$t1segc" --
 # Registration
 #    Reference is MNI152 2mm standard
 
-  
+
 
 mkdir "$t1regdir"
 
@@ -335,7 +337,7 @@ qcrun logs fnirt logs/fnirtlog "$qcoutdir"
 
 
 logcmd t1_2_ref_log applywarp --ref="$mniref" --in="$t1betcorc" --out="$t1betcorref" --warp="$s2rwarp"
-qcrun fade "T1 in ref coords" "MNI reference" "$t1betcorref" "$mniref" "$qcoutdir" --logprefix=logs/t1_2_ref_log 
+qcrun fade "T1 in ref coords" "MNI reference" "$t1betcorref" "$mniref" "$qcoutdir" --logprefix=logs/t1_2_ref_log
 
 # Calculate inverse transformation
 
@@ -474,7 +476,7 @@ printstats() {
     local imagename="$2"
     local image="$3"
     local nlabels="$4"
-    
+
     local rangetmp
     local rangebraintmp
     local voltmp
@@ -581,22 +583,22 @@ printstats "$simple_atlas" "T1" "$nucorc" 2 >> "$statsfile_simple" || error "pri
 
 if [ ! -z "$rundti" ]
 then
-    
-    
+
+
     # Create variables
-    
+
     dtibetdir=dti_bet_out
     dtib0="$dtibetdir"/dti_b0$ext
     dtib0betimage="$dtibetdir"/dti_b0_bet$ext
     dtib0betmask="$dtibetdir"/dti_b0_bet_mask$ext
-    
+
     eddycordir=dti_eddy_out
     eddycorbase="$eddycordir"/eddycor
     eddycorimage="$eddycorbase"$ext
     bvecrot="$eddycorbase".eddy_rotated_bvecs
     eddylog="$eddycorbase".ecclog
     eddycorsplitdir="$eddycordir"/split
-    
+
     dtiregdir=dti_reg_out
     nucorcbrainrs="$dtiregdir"/nu_cropped_brain_resampled$ext
     t1betmaskcrs="$dtiregdir"/t1_mask_cropped_resampled$ext
@@ -611,7 +613,7 @@ then
     struct_native_lowres="$dtiregdir"/dti_struct_native_lowres$ext
     #dtifa_native="$dtiregdir"/dti_FA_native$ext
     #dtimd_native="$dtiregdir"/dti_MD_native$ext
-    
+
     dtifitdir=dti_fit_out
     dtifitbase="$dtifitdir"/dti_lowres
     dtifa_native_lowres="${dtifitbase}"_FA$ext
@@ -619,8 +621,8 @@ then
     dtifa_native="$dtifitdir"/dti_FA_native$ext
     dtimd_native="$dtifitdir"/dti_MD_native$ext
 
-    
-    
+
+
     refinds=( $(tr ' ' '\n' < "$bval" | awk 'NF > 0 && ($1 + 0) == 0 {print NR - 1}') ) || error "refinds calc"
     if [ ${#refinds[@]} -ne 1 ]
     then
@@ -629,16 +631,16 @@ then
     echo "Structural scan found at index $refinds of $dti"
     mkdir "$dtibetdir"
     logcmd dtibetroilog fslroi "$dti" "$dtib0" $refinds 1
-    
-    
-    # BET 
+
+
+    # BET
     # https://www.jiscmail.ac.uk/cgi-bin/webadmin?A2=ind1807&L=FSL&P=R900&1=FSL&9=A&I=-3&J=on&X=46611749C95967F6DF&Y=stilley%40hollandbloorview.ca&d=No+Match%3BMatch%3BMatches&z=4
     logcmd dtib0betlog bet "$dtib0" "$dtib0betimage" -m
     qcrun fade "DTI b0" "DTI b0 BET" "$dtib0" "$dtib0betimage" "$qcoutdir" --logprefix logs/dtib0betlog
 
     # Eddy correction
     mkdir "$eddycordir"
-    
+
     # This registers everything to the reference frame using the correlation ratio
     # cost function and a linear transformation (flirt).
     if [ $useeddy -eq 1 ]
@@ -656,7 +658,7 @@ then
     mkdir "$eddycorsplitdir"
     logcmd fslsplitlog fslsplit "$eddycorimage" "$eddycorsplitdir"/ -t
     eddycorb0="$eddycorsplitdir"/$(printf "%04d" $refinds)$ext
-    
+
     mkdir "$dtiregdir"
     dtispacing=$(PrintHeader "$eddycorb0" 1 | tr 'x' ' ')
     logcmd resampleforantslog ResampleImageBySpacing 3 "$nucorcbrain" "$nucorcbrainrs" $dtispacing
@@ -685,30 +687,30 @@ then
     qcrun fade "T1" "DTI b0 in T1 coords" "$nucorc" "$struct_native" "$qcoutdir" --logprefix logs/antsapplylog
 
     # DTIFIT
-    
-    
+
+
     mkdir "$dtifitdir"
-    
+
     logcmd dtifitlog dtifit --data="$dti_native_lowres" --out="$dtifitbase" --mask="$t1betmaskcrs" --bvecs="$bvecrot" --bvals="$bval"
     logcmd antsapplymduslog antsApplyTransforms -d 3 -r "$nucorcbrain" -i "$dtimd_native_lowres" -o "$dtimd_native" -n Linear
     logcmd antsapplyfauslog antsApplyTransforms -d 3 -r "$nucorcbrain" -i "$dtifa_native_lowres" -o "$dtifa_native" -n Linear
     qcrun logs "DTI Fit" logs/dtifitlog "$qcoutdir"
     qcrun static "DTI Fit: FA" "$dtifa_native" "$qcoutdir"
     qcrun static "DTI Fit: MD" "$dtimd_native" "$qcoutdir"
-    
+
     qcrun fade "T1" "MD" "$nucorc" "$dtimd_native" "$qcoutdir"
     qcrun static "Brain mask over FA" "$dtifa_native" "$qcoutdir" --labelfile "$brainmask_native"
     qcrun static "Brain mask over MD" "$dtimd_native" "$qcoutdir" --labelfile "$brainmask_native"
     qcrun static "Lobe mask over FA" "$dtifa_native" "$qcoutdir" --labelfile "$atlas_native"
     qcrun static "Lobe mask over MD" "$dtimd_native" "$qcoutdir" --labelfile "$atlas_native"
-    
+
     # Data extraction
-    
-    
+
+
     printstats "$combined_atlas" "FA" "$dtifa_native" 28 >> "$statsfile" || error "printstats"
     printstats "$combined_atlas" "MD" "$dtimd_native" 28 >> "$statsfile" || error "printstats"
-    
-    
+
+
     printstats "$simple_atlas" "FA" "$dtifa_native" 2 >> "$statsfile_simple" || error "printstats"
     printstats "$simple_atlas" "MD" "$dtimd_native" 2 >> "$statsfile_simple" || error "printstats"
 
@@ -736,7 +738,7 @@ fi
 if grep -e '^Warning, Jacobian not within prescribed range' logs/fnirtlog_stdout.txt > /dev/null
 then
     WARNING=1
-    
+
     if ! grep -e '^Warning, Jacobian not within prescribed range' logs/fnirtlog_stdout.txt | awk '($(16) < -0.5) {exit 1}'
     then
 	ERROR=1
